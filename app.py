@@ -106,6 +106,10 @@ text_llm = get_text_llm()
 # ====================== SESSION STATE ======================
 if "messages" not in st.session_state:
     st.session_state.messages = []
+if "last_uploaded" not in st.session_state:
+    st.session_state.last_uploaded = None
+if "last_text" not in st.session_state:
+    st.session_state.last_text = None
 
 # ====================== SIDEBAR ======================
 with st.sidebar:
@@ -114,6 +118,8 @@ with st.sidebar:
     st.divider()
     if st.button("🗑️ New Chat", use_container_width=True, type="secondary"):
         st.session_state.messages = []
+        st.session_state.last_uploaded = None
+        st.session_state.last_text = None
         st.rerun()
 
 # ====================== MAIN UI ======================
@@ -142,68 +148,63 @@ with col1:
 with col2:
     uploaded_file = st.file_uploader("📎", type=["jpg", "jpeg", "png"], label_visibility="collapsed")
 
-# Process uploaded image (if any)
-if uploaded_file is not None:
-    # Use a flag to avoid reprocessing the same image multiple times
-    if "last_uploaded" not in st.session_state or st.session_state.last_uploaded != uploaded_file.name:
-        st.session_state.last_uploaded = uploaded_file.name
-        image_bytes = uploaded_file.getvalue()
-        human_msg = HumanMessage(content="[Medical Report Image] Please analyze this report.")
-        human_msg.image_data = image_bytes
-        st.session_state.messages.append(human_msg)
+# Process image upload (if new)
+if uploaded_file is not None and st.session_state.last_uploaded != uploaded_file.name:
+    st.session_state.last_uploaded = uploaded_file.name
+    image_bytes = uploaded_file.getvalue()
+    human_msg = HumanMessage(content="[Medical Report Image] Please analyze this report.")
+    human_msg.image_data = image_bytes
+    st.session_state.messages.append(human_msg)
+    
+    with st.spinner("Analyzing medical report..."):
+        base64_image = base64.b64encode(image_bytes).decode('utf-8')
+        try:
+            chat_completion = groq_client.chat.completions.create(
+                messages=[
+                    {"role": "system", "content": VISION_SYSTEM_PROMPT},
+                    {"role": "user", "content": [
+                        {"type": "text", "text": "Analyze this medical report."},
+                        {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{base64_image}"}}
+                    ]}
+                ],
+                model="meta-llama/llama-4-scout-17b-16e-instruct",
+                temperature=0.2,
+            )
+            analysis = chat_completion.choices[0].message.content
+        except Exception as e:
+            analysis = f"❌ Error: {str(e)}"
         
-        with st.spinner("Analyzing medical report..."):
-            base64_image = base64.b64encode(image_bytes).decode('utf-8')
-            try:
-                chat_completion = groq_client.chat.completions.create(
-                    messages=[
-                        {"role": "system", "content": VISION_SYSTEM_PROMPT},
-                        {"role": "user", "content": [
-                            {"type": "text", "text": "Analyze this medical report."},
-                            {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{base64_image}"}}
-                        ]}
-                    ],
-                    model="meta-llama/llama-4-scout-17b-16e-instruct",
-                    temperature=0.2,
-                )
-                analysis = chat_completion.choices[0].message.content
-            except Exception as e:
-                analysis = f"❌ Error: {str(e)}"
-            
-            fig = create_health_visualization("medical report")
-            img_bytes = fig_to_bytes(fig)
-            plt.close(fig)
-            ai_msg = AIMessage(content=analysis)
-            ai_msg.visualization = img_bytes
-            st.session_state.messages.append(ai_msg)
-        st.rerun()
+        fig = create_health_visualization("medical report")
+        img_bytes = fig_to_bytes(fig)
+        plt.close(fig)
+        ai_msg = AIMessage(content=analysis)
+        ai_msg.visualization = img_bytes
+        st.session_state.messages.append(ai_msg)
+    st.rerun()
 
-# Process text input (if any)
-elif user_input:
-    # Avoid reprocessing the same text input
-    if "last_text" not in st.session_state or st.session_state.last_text != user_input:
-        st.session_state.last_text = user_input
-        # Add user message
-        st.session_state.messages.append(HumanMessage(content=user_input))
-        with st.spinner("Thinking medically..."):
-            # Build prompt with full history
-            prompt_template = ChatPromptTemplate.from_messages([
-                ("system", TEXT_SYSTEM_PROMPT),
-                MessagesPlaceholder(variable_name="chat_history"),
-                ("human", "{input}")
-            ])
-            chain = prompt_template | text_llm
-            response = chain.invoke({
-                "input": user_input,
-                "chat_history": st.session_state.messages[:-1]  # exclude the new user message
-            })
-            fig = create_health_visualization(user_input)
-            img_bytes = fig_to_bytes(fig)
-            plt.close(fig)
-            ai_msg = AIMessage(content=response.content)
-            ai_msg.visualization = img_bytes
-            st.session_state.messages.append(ai_msg)
-        st.rerun()
+# Process text input (if new)
+elif user_input and st.session_state.last_text != user_input:
+    st.session_state.last_text = user_input
+    st.session_state.messages.append(HumanMessage(content=user_input))
+    with st.spinner("Thinking medically..."):
+        # Use full history (including previous image analysis if any)
+        prompt_template = ChatPromptTemplate.from_messages([
+            ("system", TEXT_SYSTEM_PROMPT),
+            MessagesPlaceholder(variable_name="chat_history"),
+            ("human", "{input}")
+        ])
+        chain = prompt_template | text_llm
+        response = chain.invoke({
+            "input": user_input,
+            "chat_history": st.session_state.messages[:-1]  # exclude current user message
+        })
+        fig = create_health_visualization(user_input)
+        img_bytes = fig_to_bytes(fig)
+        plt.close(fig)
+        ai_msg = AIMessage(content=response.content)
+        ai_msg.visualization = img_bytes
+        st.session_state.messages.append(ai_msg)
+    st.rerun()
 
 # CSS for chat bubbles
 st.markdown("""
