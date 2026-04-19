@@ -1,6 +1,5 @@
 import streamlit as st
 import os
-from datetime import datetime
 
 # --- Imports ---
 try:
@@ -18,7 +17,7 @@ try:
     MATPLOTLIB_AVAILABLE = True
 except ImportError:
     MATPLOTLIB_AVAILABLE = False
-    st.warning("⚠️ matplotlib not installed. Using text-based visualizations. Run `pip install matplotlib` for better visuals.")
+    st.info("ℹ️ For better visualizations, install matplotlib: `pip install matplotlib`")
 
 # ====================== PAGE CONFIG ======================
 st.set_page_config(
@@ -43,7 +42,6 @@ st.markdown("""
         letter-spacing: -0.02em;
     }
     
-    /* Chat Bubbles - Improved */
     .chat-user {
         background: linear-gradient(135deg, #3b82f6, #6366f1);
         color: white;
@@ -65,17 +63,6 @@ st.markdown("""
         box-shadow: 0 2px 8px rgba(0,0,0,0.05);
     }
     
-    /* Visualization Box */
-    .visual-box {
-        background: #f0f9ff;
-        border: 2px dashed #0ea5e9;
-        border-radius: 16px;
-        padding: 18px;
-        margin: 15px 0;
-        text-align: center;
-        font-size: 1.1rem;
-    }
-    
     .stButton>button {
         border-radius: 12px;
         height: 52px;
@@ -90,31 +77,28 @@ if not groq_api:
     st.error("⚠️ GROQ_API_KEY missing! Add it in Streamlit Secrets.")
     st.stop()
 
-# ====================== ENHANCED SYSTEM PROMPT ======================
+# ====================== SYSTEM PROMPT ======================
 SYSTEM_PROMPT = """
 You are MediAssist, an elite professional AI Medical Assistant.
 Your job is to give accurate, empathetic, and helpful information about health, wellness, medicine, fitness, nutrition, and biology.
 
 STRICT RULES:
 1. ONLY answer health, medical, fitness, or wellness related questions.
-2. If the question is unrelated (coding, politics, math, etc.), politely refuse and say you are a medical assistant.
-3. ALWAYS end every response with this disclaimer:
-   "Note: I am an AI, not a licensed doctor. Please consult a qualified healthcare professional for medical advice."
+2. If the question is unrelated, politely refuse.
+3. ALWAYS end with: "Note: I am an AI, not a licensed doctor. Please consult a qualified healthcare professional for medical advice."
 
-Keep your answer clear and structured. The system will add a graphical visualization separately.
+Keep your answer clear and structured.
 """
 
-# ====================== ADVANCED VISUALIZATION ENGINE ======================
+# ====================== VISUALIZATION ENGINE ======================
 if MATPLOTLIB_AVAILABLE:
     def create_matplotlib_viz(query: str):
-        """Generate a matplotlib figure based on query."""
         q = query.lower()
         fig, ax = plt.subplots(figsize=(6, 4))
         fig.patch.set_facecolor('#f8fafc')
         ax.set_facecolor('#f8fafc')
         
-        # Exercise / Yoga
-        if any(word in q for word in ['exercise', 'yoga', 'pose', 'stretch', 'workout', 'asana']):
+        if any(word in q for word in ['exercise', 'yoga', 'pose', 'stretch', 'workout']):
             ax.set_xlim(0, 10)
             ax.set_ylim(0, 10)
             circle = plt.Circle((5, 8.5), 0.6, color='#3b82f6', ec='#1e293b', lw=2)
@@ -124,40 +108,37 @@ if MATPLOTLIB_AVAILABLE:
             ax.plot([5, 6.8], [6.5, 5.2], color='#3b82f6', lw=3)
             ax.plot([5, 3.5], [4.5, 1.5], color='#3b82f6', lw=3)
             ax.plot([5, 6.5], [4.5, 1.5], color='#3b82f6', lw=3)
-            ax.set_title("🧘 Suggested Pose (Stick Figure)", fontsize=12, color='#4338ca')
+            ax.set_title("🧘 Suggested Pose", fontsize=12, color='#4338ca')
             ax.axis('off')
             
-        # Body part
-        elif any(word in q for word in ['knee', 'back', 'shoulder', 'neck', 'hip', 'ankle']):
-            part = next((w for w in ['knee', 'back', 'shoulder', 'neck', 'hip', 'ankle'] if w in q), 'body')
+        elif any(word in q for word in ['knee', 'back', 'shoulder', 'neck', 'hip']):
+            part = next((w for w in ['knee', 'back', 'shoulder', 'neck', 'hip'] if w in q), 'body')
             ax.plot([5,5],[2,8], 'gray', lw=2)
             ax.plot([3,7],[7,7], 'gray', lw=2)
             ax.plot([2,8],[5,5], 'gray', lw=2)
             if part == 'knee':
                 ax.plot(5, 3.5, 'ro', markersize=20)
-                ax.annotate('Knee', (5, 3.5), textcoords="offset points", xytext=(10,10), ha='center', color='red', fontweight='bold')
+                ax.annotate('Knee', (5, 3.5), ha='center', color='red')
             elif part == 'back':
-                ax.fill_between([4,6], [4,4], [7,7], color='red', alpha=0.4)
-                ax.text(5, 5.5, 'Back', ha='center', color='red', fontweight='bold')
+                ax.fill_between([4,6], [4,7], color='red', alpha=0.4)
+                ax.text(5, 5.5, 'Back', ha='center', color='red')
             elif part == 'shoulder':
                 ax.plot(3,7, 'ro', markersize=20)
                 ax.plot(7,7, 'ro', markersize=20)
-                ax.text(5, 7.2, 'Shoulders', ha='center', color='red', fontweight='bold')
+                ax.text(5, 7.2, 'Shoulders', ha='center', color='red')
             else:
                 ax.plot(5,5, 'ro', markersize=20)
-                ax.annotate(part.capitalize(), (5,5), textcoords="offset points", xytext=(0,10), ha='center', color='red', fontweight='bold')
-            ax.set_title(f"📍 {part.capitalize()} Highlight", fontsize=12, color='#4338ca')
+                ax.annotate(part.capitalize(), (5,5), ha='center', color='red')
+            ax.set_title(f"📍 {part.capitalize()}", fontsize=12, color='#4338ca')
             ax.axis('off')
             
-        # Nutrition
-        elif any(word in q for word in ['diet', 'nutrition', 'calorie', 'protein', 'vitamin']):
-            labels = ['Carbs', 'Proteins', 'Fats', 'Vitamins']
+        elif any(word in q for word in ['diet', 'nutrition', 'calorie', 'protein']):
+            labels = ['Carbs', 'Protein', 'Fats', 'Vitamins']
             sizes = [40, 30, 20, 10]
             colors = ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6']
-            ax.pie(sizes, labels=labels, colors=colors, autopct='%1.0f%%', startangle=90, wedgeprops={'edgecolor': 'white'})
+            ax.pie(sizes, labels=labels, colors=colors, autopct='%1.0f%%', startangle=90)
             ax.set_title("🥗 Nutritional Balance", fontsize=12, color='#4338ca')
             
-        # General health
         else:
             metrics = ['Hydration', 'Sleep', 'Activity', 'Mindfulness']
             scores = [75, 65, 80, 70]
@@ -178,18 +159,44 @@ if MATPLOTLIB_AVAILABLE:
         return buf
 
 else:
-    # Clean text-based fallback (no triple-quote issues)
+    # Simple, reliable text visualization (always works)
     def create_text_viz(query: str) -> str:
         q = query.lower()
         if any(word in q for word in ['exercise', 'yoga', 'pose', 'stretch', 'workout']):
-            return "**🧘 Visualization (Mountain Pose – Tadasana)**\n\n```\n    🌟\n    🧘\n   /│\\\n  / │ \\\n ●──┼──●\n    │\n   / \\\n  /   \\\n```\n*Stand tall, feet together, arms at sides. Breathe deeply.*"
-        elif any(word in q for word in ['knee', 'back', 'shoulder', 'neck', 'hip', 'ankle']):
-            part = next((w for w in ['knee', 'back', 'shoulder', 'neck', 'hip', 'ankle'] if w in q), 'body')
-            return f"**📍 Focus on: {part.capitalize()}**\n\n```\n     🧍\n    /│\\\n   / │ \\\n  ●──┼──●\n     │\n    / \\\n   /   \\\n```\n🔴 *Pay attention to your {part} area. Consider gentle stretches.*"
-        elif any(word in q for word in ['diet', 'nutrition', 'calorie', 'protein', 'vitamin']):
-            return "**🥗 Healthy Plate Guide**\n\n```\n🍚 Carbs    ████████░░ 40%\n🍗 Protein  ██████░░░░ 30%\n🥑 Fats     ████░░░░░░ 20%\n🥦 Fiber    ██░░░░░░░░ 10%\n```\n*Fill half your plate with vegetables, quarter with protein, quarter with carbs.*"
+            return """
+**🧘 Movement Visualization**  
+• Stand tall with feet hip-width apart  
+• Raise arms overhead, palms together  
+• Breathe deeply – inhale up, exhale down  
+*Repeat 5 times for a gentle stretch*
+"""
+        elif any(word in q for word in ['knee', 'back', 'shoulder', 'neck', 'hip']):
+            part = next((w for w in ['knee', 'back', 'shoulder', 'neck', 'hip'] if w in q), 'body')
+            return f"""
+**📍 Focus: {part.capitalize()} Care**  
+• 🟢 Gentle movement is helpful  
+• 🟡 Avoid sudden twisting  
+• 🔴 If pain persists, consult a doctor  
+*Try: Light stretching and proper posture*
+"""
+        elif any(word in q for word in ['diet', 'nutrition', 'calorie', 'protein']):
+            return """
+**🥗 Balanced Plate Guide**  
+🍚 Carbs: ████████░░ 40%  
+🍗 Protein: ██████░░░░ 30%  
+🥑 Fats: ████░░░░░░ 20%  
+🥦 Fiber: ██░░░░░░░░ 10%  
+*Fill half with vegetables, quarter protein, quarter carbs*
+"""
         else:
-            return "**💪 Wellness Snapshot**\n\n- 💧 Hydration: 8 glasses/day\n- 😴 Sleep: 7-9 hours\n- 🚶 Activity: 30 min daily\n- 🧠 Mindfulness: 5 min meditation\n\n*Small consistent steps lead to big health gains.*"
+            return """
+**💪 Daily Wellness Check**  
+💧 Hydration: ███████░░░ 70%  
+😴 Sleep: ██████░░░░ 60%  
+🚶 Activity: ████████░░ 80%  
+🧠 Mindfulness: ██████░░░░ 60%  
+*Small steps every day lead to big results*
+"""
 
 # ====================== LLM SETUP ======================
 @st.cache_resource
@@ -212,15 +219,15 @@ with st.sidebar:
     st.caption("Professional Health & Wellness Assistant")
     st.divider()
     st.selectbox("Model", ["llama-3.3-70b-versatile"], disabled=True)
-    temperature = st.slider("Temperature", 0.0, 0.5, 0.2, 0.05)
+    st.slider("Temperature", 0.0, 0.5, 0.2, 0.05)
     st.divider()
     if st.button("🗑️ New Chat", use_container_width=True, type="secondary"):
         st.session_state.messages = []
         st.rerun()
 
 # ====================== MAIN UI ======================
-st.markdown("🩺 MediAssist AI", unsafe_allow_html=True)
-st.markdown("Your Professional Health & Wellness Guide", unsafe_allow_html=True)
+st.markdown("# 🩺 MediAssist AI")
+st.markdown("Your Professional Health & Wellness Guide")
 st.markdown("---")
 
 # Display Chat History
@@ -231,14 +238,15 @@ for msg in st.session_state.messages:
         st.markdown(f'<div class="chat-ai">{msg.content}</div>', unsafe_allow_html=True)
         if hasattr(msg, 'viz_data'):
             if MATPLOTLIB_AVAILABLE and isinstance(msg.viz_data, bytes):
-                st.image(msg.viz_data, caption="📊 Generated Visualization", use_column_width=True)
+                st.image(msg.viz_data, caption="📊 Visualization", use_column_width=True)
             elif isinstance(msg.viz_data, str):
-                st.markdown(msg.viz_data, unsafe_allow_html=False)
+                st.markdown(msg.viz_data)
 
 # ====================== CHAT INPUT ======================
 if user_input := st.chat_input("Ask about symptoms, exercises, yoga, nutrition, or any health topic..."):
-    # Show user message instantly
+    # Show user message
     st.markdown(f'<div class="chat-user">{user_input}</div>', unsafe_allow_html=True)
+    
     with st.spinner("Thinking medically..."):
         prompt_template = ChatPromptTemplate.from_messages([
             ("system", SYSTEM_PROMPT),
@@ -269,9 +277,9 @@ if user_input := st.chat_input("Ask about symptoms, exercises, yoga, nutrition, 
         # Display response and viz
         st.markdown(f'<div class="chat-ai">{response.content}</div>', unsafe_allow_html=True)
         if MATPLOTLIB_AVAILABLE:
-            st.image(viz_bytes, caption="📊 Generated Visualization", use_column_width=True)
+            st.image(viz_bytes, caption="📊 Visualization", use_column_width=True)
         else:
-            st.markdown(viz_data, unsafe_allow_html=False)
+            st.markdown(viz_data)
         
         st.rerun()
 
