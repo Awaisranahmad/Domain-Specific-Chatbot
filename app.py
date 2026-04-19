@@ -40,6 +40,15 @@ Provide a clear summary. Do not diagnose.
 Always end with: "Note: I am an AI, not a doctor. Please consult a qualified healthcare professional."
 """
 
+# ====================== RESIZE IMAGE TO AVOID TOO LARGE ERROR ======================
+def resize_image(image_bytes, max_size=(1000, 1000)):
+    """Resize image to max dimensions while keeping aspect ratio."""
+    img = Image.open(io.BytesIO(image_bytes))
+    img.thumbnail(max_size, Image.Resampling.LANCZOS)
+    buffered = io.BytesIO()
+    img.save(buffered, format="JPEG", quality=85)
+    return buffered.getvalue()
+
 # ====================== VISUALIZATION ENGINE ======================
 def create_health_visualization(query: str):
     """Generate a matplotlib figure based on query (only called when user asks)."""
@@ -152,7 +161,8 @@ with col2:
 # Process image upload (if new)
 if uploaded_file is not None and st.session_state.last_uploaded != uploaded_file.name:
     st.session_state.last_uploaded = uploaded_file.name
-    image_bytes = uploaded_file.getvalue()
+    # Resize image to avoid "too large" error
+    image_bytes = resize_image(uploaded_file.getvalue())
     human_msg = HumanMessage(content="[Medical Report Image] Please analyze this report.")
     human_msg.image_data = image_bytes
     st.session_state.messages.append(human_msg)
@@ -175,12 +185,9 @@ if uploaded_file is not None and st.session_state.last_uploaded != uploaded_file
         except Exception as e:
             analysis = f"❌ Error: {str(e)}"
         
-        # Always show a generic visualization for medical report (optional, but user can ask to remove if needed)
-        fig = create_health_visualization("medical report")
-        img_bytes = fig_to_bytes(fig)
-        plt.close(fig)
+        # 🔥 No auto visualization for medical report – only text answer
         ai_msg = AIMessage(content=analysis)
-        ai_msg.visualization = img_bytes
+        ai_msg.visualization = None
         st.session_state.messages.append(ai_msg)
     st.rerun()
 
@@ -200,7 +207,7 @@ elif user_input and st.session_state.last_text != user_input:
             "chat_history": st.session_state.messages[:-1]
         })
         
-        # 🔥 NEW: Only generate visualization if user explicitly asks for it
+        # 🔥 Only generate visualization if user explicitly asks for it
         viz_keywords = ['visualization', 'visual', 'diagram', 'draw', 'show me', 'graph', 'chart', 'illustrate', 'depict', 'visualise']
         if any(keyword in user_input.lower() for keyword in viz_keywords):
             fig = create_health_visualization(user_input)
@@ -210,7 +217,7 @@ elif user_input and st.session_state.last_text != user_input:
             ai_msg.visualization = img_bytes
         else:
             ai_msg = AIMessage(content=response.content)
-            ai_msg.visualization = None  # no auto visualization
+            ai_msg.visualization = None
         
         st.session_state.messages.append(ai_msg)
     st.rerun()
