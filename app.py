@@ -42,6 +42,7 @@ Always end with: "Note: I am an AI, not a doctor. Please consult a qualified hea
 
 # ====================== VISUALIZATION ENGINE ======================
 def create_health_visualization(query: str):
+    """Generate a matplotlib figure based on query (only called when user asks)."""
     query_lower = query.lower()
     fig, ax = plt.subplots(figsize=(6, 4))
     ax.set_facecolor('#f0f9ff')
@@ -174,6 +175,7 @@ if uploaded_file is not None and st.session_state.last_uploaded != uploaded_file
         except Exception as e:
             analysis = f"❌ Error: {str(e)}"
         
+        # Always show a generic visualization for medical report (optional, but user can ask to remove if needed)
         fig = create_health_visualization("medical report")
         img_bytes = fig_to_bytes(fig)
         plt.close(fig)
@@ -187,7 +189,6 @@ elif user_input and st.session_state.last_text != user_input:
     st.session_state.last_text = user_input
     st.session_state.messages.append(HumanMessage(content=user_input))
     with st.spinner("Thinking medically..."):
-        # Use full history (including previous image analysis if any)
         prompt_template = ChatPromptTemplate.from_messages([
             ("system", TEXT_SYSTEM_PROMPT),
             MessagesPlaceholder(variable_name="chat_history"),
@@ -196,13 +197,21 @@ elif user_input and st.session_state.last_text != user_input:
         chain = prompt_template | text_llm
         response = chain.invoke({
             "input": user_input,
-            "chat_history": st.session_state.messages[:-1]  # exclude current user message
+            "chat_history": st.session_state.messages[:-1]
         })
-        fig = create_health_visualization(user_input)
-        img_bytes = fig_to_bytes(fig)
-        plt.close(fig)
-        ai_msg = AIMessage(content=response.content)
-        ai_msg.visualization = img_bytes
+        
+        # 🔥 NEW: Only generate visualization if user explicitly asks for it
+        viz_keywords = ['visualization', 'visual', 'diagram', 'draw', 'show me', 'graph', 'chart', 'illustrate', 'depict', 'visualise']
+        if any(keyword in user_input.lower() for keyword in viz_keywords):
+            fig = create_health_visualization(user_input)
+            img_bytes = fig_to_bytes(fig)
+            plt.close(fig)
+            ai_msg = AIMessage(content=response.content)
+            ai_msg.visualization = img_bytes
+        else:
+            ai_msg = AIMessage(content=response.content)
+            ai_msg.visualization = None  # no auto visualization
+        
         st.session_state.messages.append(ai_msg)
     st.rerun()
 
