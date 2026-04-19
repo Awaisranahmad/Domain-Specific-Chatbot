@@ -1,9 +1,11 @@
 import streamlit as st
 import os
+import base64
+import io
 from datetime import datetime
 import matplotlib.pyplot as plt
-import io
 import re
+from PIL import Image
 
 # --- Imports ---
 try:
@@ -37,7 +39,6 @@ st.markdown("""
         letter-spacing: -0.02em;
     }
     
-    /* Chat Bubbles - Improved */
     .chat-user {
         background: linear-gradient(135deg, #3b82f6, #6366f1);
         color: white;
@@ -59,17 +60,6 @@ st.markdown("""
         box-shadow: 0 2px 8px rgba(0,0,0,0.05);
     }
     
-    /* Visualization Box */
-    .visual-box {
-        background: #f0f9ff;
-        border: 2px dashed #0ea5e9;
-        border-radius: 16px;
-        padding: 18px;
-        margin: 15px 0;
-        text-align: center;
-        font-size: 1.1rem;
-    }
-    
     .stButton>button {
         border-radius: 12px;
         height: 52px;
@@ -84,100 +74,82 @@ if not groq_api:
     st.error("⚠️ GROQ_API_KEY missing! Add it in Streamlit Secrets.")
     st.stop()
 
-# ====================== ENHANCED SYSTEM PROMPT ======================
-SYSTEM_PROMPT = """
+# ====================== SYSTEM PROMPTS ======================
+TEXT_SYSTEM_PROMPT = """
 You are MediAssist, an elite professional AI Medical Assistant.
 Your job is to give accurate, empathetic, and helpful information about health, wellness, medicine, fitness, nutrition, and biology.
 
 STRICT RULES:
 1. ONLY answer health, medical, fitness, or wellness related questions.
-2. If the question is unrelated (coding, politics, math, etc.), politely refuse and say you are a medical assistant.
-3. ALWAYS end every response with this disclaimer:
-   "Note: I am an AI, not a licensed doctor. Please consult a qualified healthcare professional for medical advice."
+2. If the question is unrelated, politely refuse.
+3. ALWAYS end with: "Note: I am an AI, not a licensed doctor. Please consult a qualified healthcare professional for medical advice."
 
-Keep your answer clear and structured. The system will add a graphical visualization separately.
+Keep your answer clear and structured.
 """
 
-# ====================== VISUALIZATION ENGINE (matplotlib) ======================
+VISION_SYSTEM_PROMPT = """
+You are MediAssist Medical Report Analyst. Analyze the uploaded medical report image.
+Extract key information: patient details (if any), test names, values, reference ranges, and any abnormalities.
+Provide a clear, professional summary. Do not diagnose, but highlight areas that may need doctor attention.
+Always end with: "Note: I am an AI, not a doctor. Please consult a qualified healthcare professional for proper interpretation."
+"""
+
+# ====================== VISUALIZATION ENGINE ======================
 def create_health_visualization(query: str):
-    """
-    Generate a matplotlib figure based on the user's query.
-    Returns a PIL Image or matplotlib figure object.
-    """
     query_lower = query.lower()
     fig, ax = plt.subplots(figsize=(6, 4))
     ax.set_facecolor('#f0f9ff')
     fig.patch.set_facecolor('#ffffff')
     
-    # Exercise / Yoga / Physical Activity
-    if any(word in query_lower for word in ['exercise', 'yoga', 'pose', 'stretch', 'workout', 'asana', 'surya', 'tadasana', 'downward dog']):
-        # Draw a simple stick figure doing a pose
-        ax.set_xlim(0, 10)
-        ax.set_ylim(0, 10)
-        # Head
-        circle = plt.Circle((5, 8), 0.6, color='#3b82f6', ec='#1e293b', lw=2)
-        ax.add_patch(circle)
-        # Body
-        ax.plot([5, 5], [7.4, 4], color='#3b82f6', lw=3)
-        # Arms
-        ax.plot([5, 3.5], [6, 5], color='#3b82f6', lw=3)
-        ax.plot([5, 6.5], [6, 5], color='#3b82f6', lw=3)
-        # Legs
-        ax.plot([5, 3.8], [4, 1.8], color='#3b82f6', lw=3)
-        ax.plot([5, 6.2], [4, 1.8], color='#3b82f6', lw=3)
+    if any(word in query_lower for word in ['exercise', 'yoga', 'pose', 'stretch', 'workout', 'asana']):
+        ax.set_xlim(0, 10); ax.set_ylim(0, 10)
+        ax.add_patch(plt.Circle((5, 8), 0.6, color='#3b82f6', ec='#1e293b', lw=2))
+        ax.plot([5,5], [7.4,4], color='#3b82f6', lw=3)
+        ax.plot([5,3.5], [6,5], color='#3b82f6', lw=3)
+        ax.plot([5,6.5], [6,5], color='#3b82f6', lw=3)
+        ax.plot([5,3.8], [4,1.8], color='#3b82f6', lw=3)
+        ax.plot([5,6.2], [4,1.8], color='#3b82f6', lw=3)
         ax.set_title("🧘 Suggested Pose Visualization", fontsize=12, color='#4338ca')
         ax.axis('off')
         
-    # Body part specific (e.g., knee, back, shoulder)
     elif any(word in query_lower for word in ['knee', 'back', 'shoulder', 'neck', 'hip', 'ankle']):
-        body_part = next((w for w in ['knee', 'back', 'shoulder', 'neck', 'hip', 'ankle'] if w in query_lower), 'body')
-        ax.set_xlim(0, 10)
-        ax.set_ylim(0, 10)
-        # Simple body outline
-        ax.plot([5,5],[2,8], 'gray', lw=2)  # spine
-        ax.plot([3,7],[7,7], 'gray', lw=2)  # shoulders
-        ax.plot([2,8],[5,5], 'gray', lw=2)  # hips
-        # Highlight the specific part
+        body_part = next((w for w in ['knee','back','shoulder','neck','hip','ankle'] if w in query_lower), 'body')
+        ax.set_xlim(0,10); ax.set_ylim(0,10)
+        ax.plot([5,5],[2,8], 'gray', lw=2)
+        ax.plot([3,7],[7,7], 'gray', lw=2)
+        ax.plot([2,8],[5,5], 'gray', lw=2)
         if body_part == 'knee':
-            ax.plot(5, 3.5, 'ro', markersize=20, label='Knee')
-            ax.annotate('Knee', (5, 3.5), textcoords="offset points", xytext=(10,10), ha='center', color='red')
+            ax.plot(5,3.5,'ro',markersize=20); ax.annotate('Knee', (5,3.5), xytext=(10,10), textcoords='offset points', ha='center', color='red')
         elif body_part == 'back':
-            ax.fill_between([4,6], [4,4], [7,7], color='red', alpha=0.4, label='Back')
+            ax.fill_between([4,6], [4,7], color='red', alpha=0.4); ax.text(5,5.5,'Back',ha='center',color='red')
         elif body_part == 'shoulder':
-            ax.plot(3,7, 'ro', markersize=20)
-            ax.plot(7,7, 'ro', markersize=20)
-            ax.annotate('Shoulders', (5,7.2), ha='center', color='red')
+            ax.plot(3,7,'ro',markersize=20); ax.plot(7,7,'ro',markersize=20); ax.text(5,7.2,'Shoulders',ha='center',color='red')
         else:
-            ax.plot(5,5, 'ro', markersize=20)
-            ax.annotate(body_part.capitalize(), (5,5), textcoords="offset points", xytext=(0,10), ha='center', color='red')
+            ax.plot(5,5,'ro',markersize=20); ax.annotate(body_part.capitalize(), (5,5), xytext=(0,10), textcoords='offset points', ha='center', color='red')
         ax.set_title(f"📍 {body_part.capitalize()} Highlight", fontsize=12, color='#4338ca')
         ax.axis('off')
         
-    # Nutrition / Diet
     elif any(word in query_lower for word in ['diet', 'nutrition', 'calorie', 'protein', 'vitamin']):
         categories = ['Carbs', 'Proteins', 'Fats', 'Vitamins']
-        values = [40, 30, 20, 10]
-        colors = ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6']
-        ax.pie(values, labels=categories, colors=colors, autopct='%1.0f%%', startangle=90, wedgeprops={'edgecolor': 'white'})
+        values = [40,30,20,10]
+        colors = ['#3b82f6','#10b981','#f59e0b','#8b5cf6']
+        ax.pie(values, labels=categories, colors=colors, autopct='%1.0f%%', startangle=90, wedgeprops={'edgecolor':'white'})
         ax.set_title("🥗 Nutritional Balance Guide", fontsize=12, color='#4338ca')
         
-    # General health / fitness
     else:
-        # Health meter
         metrics = ['Hydration', 'Sleep', 'Activity', 'Mindfulness']
-        scores = [75, 65, 80, 70]
-        bars = ax.bar(metrics, scores, color=['#3b82f6', '#8b5cf6', '#10b981', '#f59e0b'])
-        ax.set_ylim(0, 100)
+        scores = [75,65,80,70]
+        bars = ax.bar(metrics, scores, color=['#3b82f6','#8b5cf6','#10b981','#f59e0b'])
+        ax.set_ylim(0,100)
         ax.set_ylabel('Score (%)')
         ax.set_title("💪 Your Wellness Snapshot", fontsize=12, color='#4338ca')
         for bar, score in zip(bars, scores):
-            ax.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 2, f'{score}%', ha='center', fontsize=9)
+            ax.text(bar.get_x()+bar.get_width()/2, bar.get_height()+2, f'{score}%', ha='center', fontsize=9)
             
     plt.tight_layout()
     return fig
 
 def fig_to_bytes(fig):
-    """Convert matplotlib figure to bytes for streamlit display"""
     buf = io.BytesIO()
     fig.savefig(buf, format='png', dpi=100, bbox_inches='tight')
     buf.seek(0)
@@ -185,14 +157,16 @@ def fig_to_bytes(fig):
 
 # ====================== LLM SETUP ======================
 @st.cache_resource
-def get_medical_llm():
-    return ChatGroq(
-        groq_api_key=groq_api,
-        model_name="llama-3.3-70b-versatile",
-        temperature=0.2
-    )
+def get_text_llm():
+    return ChatGroq(groq_api_key=groq_api, model_name="llama-3.3-70b-versatile", temperature=0.2)
 
-llm = get_medical_llm()
+@st.cache_resource
+def get_vision_llm():
+    # Use Groq's vision model for medical report analysis
+    return ChatGroq(groq_api_key=groq_api, model_name="llama-3.2-11b-vision-preview", temperature=0.2)
+
+text_llm = get_text_llm()
+vision_llm = get_vision_llm()
 
 # ====================== SESSION STATE ======================
 if "messages" not in st.session_state:
@@ -203,8 +177,7 @@ with st.sidebar:
     st.markdown("# 🩺 MediAssist")
     st.caption("Professional Health & Wellness Assistant")
     st.divider()
-    st.selectbox("Model", ["llama-3.3-70b-versatile"], disabled=True)
-    temperature = st.slider("Temperature", 0.0, 0.5, 0.2, 0.05)
+    st.selectbox("Model", ["llama-3.3-70b-versatile (text)", "llama-3.2-11b-vision (for images)"], disabled=True)
     st.divider()
     if st.button("🗑️ New Chat", use_container_width=True, type="secondary"):
         st.session_state.messages = []
@@ -218,44 +191,95 @@ st.markdown("---")
 # Display Chat History
 for msg in st.session_state.messages:
     if isinstance(msg, HumanMessage):
-        st.markdown(f'<div class="chat-user">{msg.content}</div>', unsafe_allow_html=True)
+        # Check if it's an image message (custom attribute)
+        if hasattr(msg, 'image_data'):
+            st.markdown(f'<div class="chat-user">📄 [Uploaded Medical Report]</div>', unsafe_allow_html=True)
+            st.image(msg.image_data, caption="Uploaded Report", width=200)
+            st.markdown(f'<div class="chat-user">*{msg.content}*</div>', unsafe_allow_html=True)
+        else:
+            st.markdown(f'<div class="chat-user">{msg.content}</div>', unsafe_allow_html=True)
     elif isinstance(msg, AIMessage):
         st.markdown(f'<div class="chat-ai">{msg.content}</div>', unsafe_allow_html=True)
-        # If the AI message has an associated visualization (stored as metadata), show it
         if hasattr(msg, 'visualization') and msg.visualization:
             st.image(msg.visualization, caption="📊 Generated Visualization", use_column_width=True)
 
-# ====================== CHAT INPUT ======================
-if user_input := st.chat_input("Ask about symptoms, exercises, yoga, nutrition, or any health topic..."):
-    # Show user message instantly
+# ====================== INPUT AREA ======================
+col1, col2 = st.columns([5, 1])
+with col1:
+    user_input = st.chat_input("Ask about symptoms, exercises, nutrition... or upload a medical report using the button →")
+with col2:
+    uploaded_file = st.file_uploader("📎", type=["jpg", "jpeg", "png"], label_visibility="collapsed")
+
+if uploaded_file is not None:
+    # Handle image upload for medical report
+    image = Image.open(uploaded_file)
+    # Convert to base64 for API
+    buffered = io.BytesIO()
+    image.save(buffered, format="PNG")
+    img_base64 = base64.b64encode(buffered.getvalue()).decode()
+    
+    # Create a user message with image
+    human_msg = HumanMessage(content="[Medical Report Image] Please analyze this report.")
+    human_msg.image_data = uploaded_file.getvalue()  # store for display
+    st.session_state.messages.append(human_msg)
+    
+    # Show image immediately
+    st.markdown(f'<div class="chat-user">📄 [Uploaded Medical Report]</div>', unsafe_allow_html=True)
+    st.image(uploaded_file, caption="Uploaded Report", width=200)
+    
+    with st.spinner("Analyzing medical report..."):
+        # Use vision model with image
+        # LangChain Groq vision expects a specific message format
+        from langchain_core.messages import HumanMessage as LCHumanMessage
+        vision_prompt = ChatPromptTemplate.from_messages([
+            ("system", VISION_SYSTEM_PROMPT),
+            ("human", [
+                {"type": "text", "text": "Analyze this medical report image."},
+                {"type": "image_url", "image_url": {"url": f"data:image/png;base64,{img_base64}"}}
+            ])
+        ])
+        chain = vision_prompt | vision_llm
+        response = chain.invoke({})
+        
+        # Generate visualization based on report content (optional)
+        fig = create_health_visualization("medical report")
+        img_bytes = fig_to_bytes(fig)
+        plt.close(fig)
+        
+        ai_msg = AIMessage(content=response.content)
+        ai_msg.visualization = img_bytes
+        st.session_state.messages.append(ai_msg)
+        
+        st.markdown(f'<div class="chat-ai">{response.content}</div>', unsafe_allow_html=True)
+        st.image(img_bytes, caption="📊 Related Visualization", use_column_width=True)
+        st.rerun()
+
+elif user_input:
+    # Regular text input
     st.markdown(f'<div class="chat-user">{user_input}</div>', unsafe_allow_html=True)
     with st.spinner("Thinking medically..."):
         prompt_template = ChatPromptTemplate.from_messages([
-            ("system", SYSTEM_PROMPT),
+            ("system", TEXT_SYSTEM_PROMPT),
             MessagesPlaceholder(variable_name="chat_history"),
             ("human", "{input}")
         ])
-        chain = prompt_template | llm
+        chain = prompt_template | text_llm
         response = chain.invoke({
             "input": user_input,
             "chat_history": st.session_state.messages
         })
         
-        # Generate visualization based on user query
         fig = create_health_visualization(user_input)
         img_bytes = fig_to_bytes(fig)
-        plt.close(fig)  # free memory
+        plt.close(fig)
         
-        # Store AI message with visualization attached
         ai_msg = AIMessage(content=response.content)
-        ai_msg.visualization = img_bytes  # custom attribute
+        ai_msg.visualization = img_bytes
         st.session_state.messages.append(HumanMessage(content=user_input))
         st.session_state.messages.append(ai_msg)
         
-        # Display AI response and its visualization
         st.markdown(f'<div class="chat-ai">{response.content}</div>', unsafe_allow_html=True)
         st.image(img_bytes, caption="📊 Generated Visualization", use_column_width=True)
-        
         st.rerun()
 
 # Footer
