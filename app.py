@@ -114,99 +114,79 @@ with st.sidebar:
     st.divider()
     if st.button("🗑️ New Chat", use_container_width=True, type="secondary"):
         st.session_state.messages = []
-        st.rerun()
+        st.rerun()  # Keep rerun only for clearing chat (one-time action)
 
-# ====================== MAIN UI: SCROLLABLE CHAT + FIXED INPUT ======================
-# Use custom CSS to fix input at bottom and make chat scrollable
-st.markdown("""
-<style>
-    .main > div {
-        display: flex;
-        flex-direction: column;
-        height: 100vh;
-    }
-    .stChatInputContainer {
-        position: sticky;
-        bottom: 0;
-        background: white;
-        padding: 10px 0;
-        z-index: 999;
-    }
-    .chat-history {
-        flex-grow: 1;
-        overflow-y: auto;
-        padding-bottom: 80px;
-    }
-</style>
-""", unsafe_allow_html=True)
-
-# Header
+# ====================== MAIN UI ======================
 st.markdown("# 🩺 MediAssist AI")
 st.markdown("Your Professional Health & Wellness Guide")
 st.markdown("---")
 
-# Scrollable chat history container
-chat_container = st.container()
-with chat_container:
-    for msg in st.session_state.messages:
-        if isinstance(msg, HumanMessage):
-            if hasattr(msg, 'image_data'):
-                st.markdown(f'<div class="chat-user">📄 [Uploaded Medical Report]</div>', unsafe_allow_html=True)
-                st.image(msg.image_data, caption="Uploaded Report", width=200)
-                st.markdown(f'<div class="chat-user">*{msg.content}*</div>', unsafe_allow_html=True)
-            else:
-                st.markdown(f'<div class="chat-user">{msg.content}</div>', unsafe_allow_html=True)
-        elif isinstance(msg, AIMessage):
-            st.markdown(f'<div class="chat-ai">{msg.content}</div>', unsafe_allow_html=True)
-            if hasattr(msg, 'visualization') and msg.visualization:
-                st.image(msg.visualization, caption="📊 Generated Visualization", use_column_width=True)
+# Display chat history (no rerun needed, just render)
+for msg in st.session_state.messages:
+    if isinstance(msg, HumanMessage):
+        if hasattr(msg, 'image_data'):
+            st.markdown(f'<div class="chat-user">📄 [Uploaded Medical Report]</div>', unsafe_allow_html=True)
+            st.image(msg.image_data, caption="Uploaded Report", width=200)
+            st.markdown(f'<div class="chat-user">*{msg.content}*</div>', unsafe_allow_html=True)
+        else:
+            st.markdown(f'<div class="chat-user">{msg.content}</div>', unsafe_allow_html=True)
+    elif isinstance(msg, AIMessage):
+        st.markdown(f'<div class="chat-ai">{msg.content}</div>', unsafe_allow_html=True)
+        if hasattr(msg, 'visualization') and msg.visualization:
+            st.image(msg.visualization, caption="📊 Generated Visualization", use_column_width=True)
 
-# Fixed input area at bottom
-with st.container():
-    col1, col2 = st.columns([5, 1])
-    with col1:
-        user_input = st.chat_input("Ask about symptoms, exercises, nutrition... or upload a medical report using the button →", key="fixed_input")
-    with col2:
-        uploaded_file = st.file_uploader("📎", type=["jpg", "jpeg", "png"], label_visibility="collapsed", key="uploader")
+# ====================== INPUT AREA (FIXED AT BOTTOM NATURALLY) ======================
+# We'll use two separate input methods: chat_input for text, and a file_uploader placed above it.
+# To keep the layout clean, we put the upload button on the same line as the chat input using columns.
+col1, col2 = st.columns([5, 1])
+with col1:
+    user_input = st.chat_input("Ask about symptoms, exercises, nutrition... or use the 📎 button to upload a medical report")
+with col2:
+    uploaded_file = st.file_uploader("📎", type=["jpg", "jpeg", "png"], label_visibility="collapsed")
 
-# Process image upload
+# Process image upload (only once per upload)
 if uploaded_file is not None:
-    image_bytes = uploaded_file.getvalue()
-    human_msg = HumanMessage(content="[Medical Report Image] Please analyze this report.")
-    human_msg.image_data = image_bytes
-    st.session_state.messages.append(human_msg)
-    
-    with st.spinner("Analyzing medical report..."):
-        base64_image = base64.b64encode(image_bytes).decode('utf-8')
-        try:
-            chat_completion = groq_client.chat.completions.create(
-                messages=[
-                    {"role": "system", "content": VISION_SYSTEM_PROMPT},
-                    {"role": "user", "content": [
-                        {"type": "text", "text": "Analyze this medical report."},
-                        {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{base64_image}"}}
-                    ]}
-                ],
-                model="meta-llama/llama-4-scout-17b-16e-instruct",
-                temperature=0.2,
-            )
-            analysis = chat_completion.choices[0].message.content
-        except Exception as e:
-            analysis = f"❌ Error: {str(e)}"
+    # Avoid reprocessing by checking if we already handled this file
+    if "last_uploaded" not in st.session_state or st.session_state.last_uploaded != uploaded_file.name:
+        st.session_state.last_uploaded = uploaded_file.name
+        image_bytes = uploaded_file.getvalue()
+        human_msg = HumanMessage(content="[Medical Report Image] Please analyze this report.")
+        human_msg.image_data = image_bytes
+        st.session_state.messages.append(human_msg)
         
-        fig = create_health_visualization("medical report")
-        img_bytes = fig_to_bytes(fig)
-        plt.close(fig)
-        ai_msg = AIMessage(content=analysis)
-        ai_msg.visualization = img_bytes
-        st.session_state.messages.append(ai_msg)
-    
-    st.rerun()
+        with st.spinner("Analyzing medical report..."):
+            base64_image = base64.b64encode(image_bytes).decode('utf-8')
+            try:
+                chat_completion = groq_client.chat.completions.create(
+                    messages=[
+                        {"role": "system", "content": VISION_SYSTEM_PROMPT},
+                        {"role": "user", "content": [
+                            {"type": "text", "text": "Analyze this medical report."},
+                            {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{base64_image}"}}
+                        ]}
+                    ],
+                    model="meta-llama/llama-4-scout-17b-16e-instruct",
+                    temperature=0.2,
+                )
+                analysis = chat_completion.choices[0].message.content
+            except Exception as e:
+                analysis = f"❌ Error: {str(e)}"
+            
+            fig = create_health_visualization("medical report")
+            img_bytes = fig_to_bytes(fig)
+            plt.close(fig)
+            ai_msg = AIMessage(content=analysis)
+            ai_msg.visualization = img_bytes
+            st.session_state.messages.append(ai_msg)
+        st.rerun()  # rerun once to show the new messages
 
-# Process text input
-elif user_input:
+# Process text input (only once per message)
+elif user_input and (not st.session_state.get("last_text_input") == user_input):
+    st.session_state.last_text_input = user_input
     st.session_state.messages.append(HumanMessage(content=user_input))
     with st.spinner("Thinking medically..."):
+        # Build chat history without the new user message (it will be added later)
+        history = st.session_state.messages[:-1]  # exclude the just-added user message
         prompt_template = ChatPromptTemplate.from_messages([
             ("system", TEXT_SYSTEM_PROMPT),
             MessagesPlaceholder(variable_name="chat_history"),
@@ -215,7 +195,7 @@ elif user_input:
         chain = prompt_template | text_llm
         response = chain.invoke({
             "input": user_input,
-            "chat_history": st.session_state.messages[:-1]  # exclude the new user message
+            "chat_history": history
         })
         fig = create_health_visualization(user_input)
         img_bytes = fig_to_bytes(fig)
@@ -225,7 +205,33 @@ elif user_input:
         st.session_state.messages.append(ai_msg)
     st.rerun()
 
-# Footer (optional)
+# Add CSS for chat bubbles (already present in previous versions)
+st.markdown("""
+<style>
+    .chat-user {
+        background: linear-gradient(135deg, #3b82f6, #6366f1);
+        color: white;
+        padding: 14px 20px;
+        border-radius: 20px 20px 4px 20px;
+        max-width: 78%;
+        margin: 12px 0 12px auto;
+        box-shadow: 0 4px 12px rgba(59, 130, 246, 0.25);
+    }
+    .chat-ai {
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-left: 5px solid #8b5cf6;
+        color: #1e293b;
+        padding: 14px 20px;
+        border-radius: 20px 20px 20px 4px;
+        max-width: 78%;
+        margin: 12px 0;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    }
+</style>
+""", unsafe_allow_html=True)
+
+# Footer
 st.markdown("""
 ---
 <p style='text-align: center; color: #64748b; font-size: 0.8rem;'>
