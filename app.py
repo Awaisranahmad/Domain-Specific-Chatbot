@@ -100,3 +100,72 @@ VISUALIZATION RULE:
     **Visualization:**
     ```visual
     [emoji diagram + steps]
+
+    Be warm, clear, professional and easy to understand.
+"""
+
+@st.cache_resource
+def get_medical_llm():
+    return ChatGroq(
+        groq_api_key=groq_api,
+        model_name="llama-3.3-70b-versatile",
+        temperature=0.2
+    )
+
+llm = get_medical_llm()
+
+# ====================== SESSION STATE ======================
+if "messages" not in st.session_state:
+    st.session_state.messages = []
+
+# ====================== SIDEBAR ======================
+with st.sidebar:
+    st.markdown("# 🩺 MediAssist")
+    st.caption("Professional Health & Wellness Assistant")
+    st.divider()
+    st.selectbox("Model", ["llama-3.3-70b-versatile"], disabled=True)
+    temperature = st.slider("Temperature", 0.0, 0.5, 0.2, 0.05)
+    st.divider()
+    if st.button("🗑️ New Chat", use_container_width=True, type="secondary"):
+        st.session_state.messages = []
+        st.rerun()
+
+# ====================== MAIN UI ======================
+st.markdown("🩺 MediAssist AI", unsafe_allow_html=True)
+st.markdown("Your Professional Health & Wellness Guide", unsafe_allow_html=True)
+st.markdown("---")
+
+# Display Chat History
+for msg in st.session_state.messages:
+    if isinstance(msg, HumanMessage):
+        st.markdown(f'<div class="chat-user">{msg.content}</div>', unsafe_allow_html=True)
+    elif isinstance(msg, AIMessage):
+        st.markdown(f'<div class="chat-ai">{msg.content}</div>', unsafe_allow_html=True)
+
+# ====================== CHAT INPUT ======================
+if user_input := st.chat_input("Ask about symptoms, exercises, yoga, nutrition, or any health topic..."):
+    # Show user message instantly
+    st.markdown(f'<div class="chat-user">{user_input}</div>', unsafe_allow_html=True)
+    with st.spinner("Thinking medically..."):
+        prompt_template = ChatPromptTemplate.from_messages([
+            ("system", SYSTEM_PROMPT),
+            MessagesPlaceholder(variable_name="chat_history"),
+            ("human", "{input}")
+        ])
+        chain = prompt_template | llm
+        response = chain.invoke({
+            "input": user_input,
+            "chat_history": st.session_state.messages
+        })
+    # Save to session
+    st.session_state.messages.append(HumanMessage(content=user_input))
+    st.session_state.messages.append(AIMessage(content=response.content))
+    st.rerun()
+
+# Footer
+st.markdown("""
+---
+<p style='text-align: center; color: #64748b; font-size: 0.8rem;'>
+    MediAssist AI • Not a substitute for professional medical advice • Always consult a doctor
+</p>
+""", unsafe_allow_html=True)
