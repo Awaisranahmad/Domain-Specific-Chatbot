@@ -114,14 +114,14 @@ with st.sidebar:
     st.divider()
     if st.button("🗑️ New Chat", use_container_width=True, type="secondary"):
         st.session_state.messages = []
-        st.rerun()  # Keep rerun only for clearing chat (one-time action)
+        st.rerun()
 
 # ====================== MAIN UI ======================
 st.markdown("# 🩺 MediAssist AI")
 st.markdown("Your Professional Health & Wellness Guide")
 st.markdown("---")
 
-# Display chat history (no rerun needed, just render)
+# Display chat history
 for msg in st.session_state.messages:
     if isinstance(msg, HumanMessage):
         if hasattr(msg, 'image_data'):
@@ -135,18 +135,16 @@ for msg in st.session_state.messages:
         if hasattr(msg, 'visualization') and msg.visualization:
             st.image(msg.visualization, caption="📊 Generated Visualization", use_column_width=True)
 
-# ====================== INPUT AREA (FIXED AT BOTTOM NATURALLY) ======================
-# We'll use two separate input methods: chat_input for text, and a file_uploader placed above it.
-# To keep the layout clean, we put the upload button on the same line as the chat input using columns.
+# ====================== INPUT AREA ======================
 col1, col2 = st.columns([5, 1])
 with col1:
     user_input = st.chat_input("Ask about symptoms, exercises, nutrition... or use the 📎 button to upload a medical report")
 with col2:
     uploaded_file = st.file_uploader("📎", type=["jpg", "jpeg", "png"], label_visibility="collapsed")
 
-# Process image upload (only once per upload)
+# Process uploaded image (if any)
 if uploaded_file is not None:
-    # Avoid reprocessing by checking if we already handled this file
+    # Use a flag to avoid reprocessing the same image multiple times
     if "last_uploaded" not in st.session_state or st.session_state.last_uploaded != uploaded_file.name:
         st.session_state.last_uploaded = uploaded_file.name
         image_bytes = uploaded_file.getvalue()
@@ -178,34 +176,36 @@ if uploaded_file is not None:
             ai_msg = AIMessage(content=analysis)
             ai_msg.visualization = img_bytes
             st.session_state.messages.append(ai_msg)
-        st.rerun()  # rerun once to show the new messages
+        st.rerun()
 
-# Process text input (only once per message)
-elif user_input and (not st.session_state.get("last_text_input") == user_input):
-    st.session_state.last_text_input = user_input
-    st.session_state.messages.append(HumanMessage(content=user_input))
-    with st.spinner("Thinking medically..."):
-        # Build chat history without the new user message (it will be added later)
-        history = st.session_state.messages[:-1]  # exclude the just-added user message
-        prompt_template = ChatPromptTemplate.from_messages([
-            ("system", TEXT_SYSTEM_PROMPT),
-            MessagesPlaceholder(variable_name="chat_history"),
-            ("human", "{input}")
-        ])
-        chain = prompt_template | text_llm
-        response = chain.invoke({
-            "input": user_input,
-            "chat_history": history
-        })
-        fig = create_health_visualization(user_input)
-        img_bytes = fig_to_bytes(fig)
-        plt.close(fig)
-        ai_msg = AIMessage(content=response.content)
-        ai_msg.visualization = img_bytes
-        st.session_state.messages.append(ai_msg)
-    st.rerun()
+# Process text input (if any)
+elif user_input:
+    # Avoid reprocessing the same text input
+    if "last_text" not in st.session_state or st.session_state.last_text != user_input:
+        st.session_state.last_text = user_input
+        # Add user message
+        st.session_state.messages.append(HumanMessage(content=user_input))
+        with st.spinner("Thinking medically..."):
+            # Build prompt with full history
+            prompt_template = ChatPromptTemplate.from_messages([
+                ("system", TEXT_SYSTEM_PROMPT),
+                MessagesPlaceholder(variable_name="chat_history"),
+                ("human", "{input}")
+            ])
+            chain = prompt_template | text_llm
+            response = chain.invoke({
+                "input": user_input,
+                "chat_history": st.session_state.messages[:-1]  # exclude the new user message
+            })
+            fig = create_health_visualization(user_input)
+            img_bytes = fig_to_bytes(fig)
+            plt.close(fig)
+            ai_msg = AIMessage(content=response.content)
+            ai_msg.visualization = img_bytes
+            st.session_state.messages.append(ai_msg)
+        st.rerun()
 
-# Add CSS for chat bubbles (already present in previous versions)
+# CSS for chat bubbles
 st.markdown("""
 <style>
     .chat-user {
