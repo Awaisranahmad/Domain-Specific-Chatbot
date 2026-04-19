@@ -2,7 +2,7 @@
 """
         else:
             return """
-**💪 Wellness Tips**  
+💪 Wellness Tips 
 - 💧 Hydrate: 8 glasses/day  
 - 😴 Sleep: 7-9 hours  
 - 🚶 Move: 30 min daily  
