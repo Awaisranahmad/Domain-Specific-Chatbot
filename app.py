@@ -1,5 +1,8 @@
 import streamlit as st
 import os
+from datetime import datetime
+
+# --- Imports ---
 try:
     from langchain_groq import ChatGroq
     from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
@@ -8,129 +11,149 @@ except ModuleNotFoundError as e:
     st.error(f"🚨 Module missing: {e}. Please check requirements.txt")
     st.stop()
 
-# ====================== PAGE CONFIG & LIGHT THEME ======================
-st.set_page_config(page_title="MediAssist AI", page_icon="🩺", layout="centered")
+# ====================== PAGE CONFIG ======================
+st.set_page_config(
+    page_title="🩺 MediAssist AI",
+    page_icon="🩺",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
 
-# Light Professional Theme (White, Blue, Purple Accents)
+# ====================== PREMIUM MEDICAL UI ======================
 st.markdown("""
 <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&display=swap');
+    
     .stApp {
-        background-color: #ffffff;
+        background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
         color: #1e293b;
     }
     h1, h2, h3 {
-        color: #4338ca; /* Indigo/Purple */
+        font-family: 'Space Grotesk', sans-serif;
+        color: #4338ca;
+        letter-spacing: -0.02em;
     }
-    .stChatInputContainer {
-        border-top: 2px solid #e2e8f0;
-    }
-    .chat-bubble-user {
-        background: linear-gradient(135deg, #3b82f6, #6366f1); /* Blue to Purple */
+    
+    /* Chat Bubbles */
+    .chat-user {
+        background: linear-gradient(135deg, #3b82f6, #6366f1);
         color: white;
-        padding: 12px 18px;
-        border-radius: 18px 18px 4px 18px;
-        margin-bottom: 12px;
-        max-width: 80%;
-        float: right;
-        clear: both;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        padding: 14px 20px;
+        border-radius: 20px 20px 4px 20px;
+        max-width: 78%;
+        margin: 12px 0 12px auto;
+        box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2);
     }
-    .chat-bubble-ai {
-        background-color: #f8fafc;
-        color: #334155;
-        border: 1px solid #cbd5e1;
-        border-left: 4px solid #8b5cf6; /* Purple Accent */
-        padding: 12px 18px;
-        border-radius: 18px 18px 18px 4px;
-        margin-bottom: 12px;
-        max-width: 80%;
-        float: left;
-        clear: both;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+    .chat-ai {
+        background: #ffffff;
+        border: 1px solid #e2e8f0;
+        border-left: 5px solid #8b5cf6;
+        color: #1e293b;
+        padding: 14px 20px;
+        border-radius: 20px 20px 20px 4px;
+        max-width: 78%;
+        margin: 12px 0;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.04);
     }
-    .disclaimer {
-        color: #64748b;
-        font-size: 0.85rem;
+    
+    .visualization-box {
+        background: #f0f9ff;
+        border: 2px dashed #0ea5e9;
+        border-radius: 16px;
+        padding: 16px;
+        margin: 12px 0;
         text-align: center;
-        margin-top: 20px;
+    }
+    
+    .stButton>button {
+        border-radius: 12px;
+        height: 52px;
+        font-weight: 600;
     }
 </style>
 """, unsafe_allow_html=True)
 
 # ====================== API SETUP ======================
 groq_api = st.secrets.get("GROQ_API_KEY") or os.getenv("GROQ_API_KEY")
-
 if not groq_api:
-    st.warning("⚠️ Please add your Groq API Key to proceed.")
+    st.error("⚠️ GROQ_API_KEY missing! Add in Streamlit Secrets.")
     st.stop()
 
-# ====================== SYSTEM PROMPT ======================
-# Ye prompt AI ko batayega ke usay KYA karna hai aur KYA NAHI karna
+# ====================== ENHANCED SYSTEM PROMPT (Visualization Support) ======================
 SYSTEM_PROMPT = """
-You are MediAssist, an elite and professional AI Medical Assistant.
-Your primary role is to provide general health, wellness, and medical information.
+You are MediAssist, a highly professional and empathetic AI Medical Assistant.
 
-RULES:
-1. ONLY answer questions related to health, medicine, biology, fitness, and wellness.
-2. If the user asks about coding, politics, math, or anything outside the medical domain, gently refuse and remind them that you are a medical assistant.
-3. ALWAYS include a disclaimer at the end of medical advice stating: "Note: I am an AI, not a doctor. Please consult a healthcare professional for actual medical concerns."
-4. Be empathetic, polite, and use clear, professional language.
+CORE RULES:
+- ONLY answer questions related to health, medicine, wellness, fitness, nutrition, biology, or symptoms.
+- If user asks anything outside medical domain, politely refuse and remind them you are a medical assistant.
+- ALWAYS end your response with: "Note: I am an AI, not a licensed doctor. Please consult a qualified healthcare professional for medical advice."
+
+VISUALIZATION RULE (Very Important):
+- When user asks about **exercises, yoga poses, stretches, body parts, symptoms, or any physical activity**, 
+  you MUST provide:
+  1. Clear step-by-step explanation
+  2. A simple **visualization** using emojis and markdown (e.g., body diagram, pose steps)
+  3. Put the visualization inside a box like this:
+     **Visualization:**
+     ```visual
+     [your emoji + text diagram here]
+     Be warm, clear, and professional.
 """
-
 @st.cache_resource
 def get_medical_llm():
-    return ChatGroq(
-        groq_api_key=groq_api,
-        model_name="llama-3.3-70b-versatile",
-        temperature=0.2 # Low temperature for accurate, factual responses
-    )
-
+return ChatGroq(
+groq_api_key=groq_api,
+model_name="llama-3.3-70b-versatile",
+temperature=0.2
+)
 llm = get_medical_llm()
-
-# ====================== SESSION STATE ======================
+====================== SESSION STATE ======================
 if "messages" not in st.session_state:
-    st.session_state.messages = []
-
-# ====================== UI ======================
-st.markdown("<h1 style='text-align: center;'>🩺 MediAssist AI</h1>", unsafe_allow_html=True)
-st.markdown("<p style='text-align: center; color: #64748b;'>Your Professional Health & Wellness Guide</p>", unsafe_allow_html=True)
-st.markdown("---")
-
-# Display Chat History
+st.session_state.messages = []
+====================== SIDEBAR ======================
+with st.sidebar:
+st.markdown("# 🩺 MediAssist")
+st.caption("Professional Health Assistant")
+st.divider()
+st.selectbox("Model", ["llama-3.3-70b-versatile"], disabled=True)
+temperature = st.slider("Creativity Level", 0.0, 0.5, 0.2, 0.05)
+st.divider()
+if st.button("🗑️ New Chat", use_container_width=True):
+st.session_state.messages = []
+st.rerun()
+====================== MAIN UI ======================
+st.markdown("🩺 MediAssist AI", unsafe_allow_html=True)
+st.markdown("Your Trusted Health & Wellness Companion", unsafe_allow_html=True)
+Display Chat History
 for msg in st.session_state.messages:
-    if isinstance(msg, HumanMessage):
-        st.markdown(f"<div class='chat-bubble-user'>{msg.content}</div>", unsafe_allow_html=True)
-    elif isinstance(msg, AIMessage):
-        st.markdown(f"<div class='chat-bubble-ai'>{msg.content}</div>", unsafe_allow_html=True)
-
-# Clear floats
-st.markdown("<div style='clear: both;'></div>", unsafe_allow_html=True)
-
-# ====================== CHAT LOGIC ======================
+if isinstance(msg, HumanMessage):
+st.markdown(f"{msg.content}", unsafe_allow_html=True)
+elif isinstance(msg, AIMessage):
+st.markdown(f"{msg.content}", unsafe_allow_html=True)
+Chat Input
+if user_input := st.chat_input("Ask anything about health, symptoms, exercises, nutrition..."):
+Show user message immediately
+st.markdown(f"{user_input}", unsafe_allow_html=True)
+with st.spinner("Thinking medically..."):
+LangChain Chain
 prompt_template = ChatPromptTemplate.from_messages([
-    ("system", SYSTEM_PROMPT),
-    MessagesPlaceholder(variable_name="chat_history"),
-    ("human", "{input}")
+("system", SYSTEM_PROMPT),
+MessagesPlaceholder(variable_name="chat_history"),
+("human", "{input}")
 ])
-
 chain = prompt_template | llm
+response = chain.invoke({
+"input": user_input,
+"chat_history": st.session_state.messages
+})
+Save messages
+st.session_state.messages.append(HumanMessage(content=user_input))
+st.session_state.messages.append(AIMessage(content=response.content))
+st.rerun()
+Footer
+st.markdown("""
 
-if user_input := st.chat_input("Ask about symptoms, healthy habits, or medical terms..."):
-    # Add user message to UI immediately
-    st.markdown(f"<div class='chat-bubble-user'>{user_input}</div><div style='clear: both;'></div>", unsafe_allow_html=True)
-    
-    with st.spinner("Analyzing medical knowledge base..."):
-        # Invoke LangChain
-        response = chain.invoke({
-            "input": user_input,
-            "chat_history": st.session_state.messages
-        })
-        
-        # Save to state
-        st.session_state.messages.append(HumanMessage(content=user_input))
-        st.session_state.messages.append(AIMessage(content=response.content))
-        
-        # Rerun to update the AI bubble
-        st.rerun()
+    MediAssist AI • Not a substitute for professional medical advice • Always consult a doctor
 
-st.markdown("<div class='disclaimer'>MediAssist AI • Not a substitute for professional medical advice.</div>", unsafe_allow_html=True)
+""", unsafe_allow_html=True)
+```
