@@ -255,8 +255,8 @@ def main():
         if not groq_api_key:
             groq_api_key = st.text_input("Enter Groq API Key", type="password")
 
-        vision_model = st.secrets.get("GROQ_VISION_MODEL", os.getenv("GROQ_VISION_MODEL", "llama-3.2-11b-vision-preview"))
-        text_model = st.secrets.get("GROQ_TEXT_MODEL", os.getenv("GROQ_TEXT_MODEL", "llama3-70b-8192"))
+        vision_model = st.secrets.get("GROQ_VISION_MODEL", os.getenv("GROQ_VISION_MODEL", "meta-llama/llama-4-scout-17b-16e-instruct"))
+        text_model = st.secrets.get("GROQ_TEXT_MODEL", os.getenv("GROQ_TEXT_MODEL", "llama-3.3-70b-versatile"))
 
         st.markdown("#### Model Settings")
         vision_model = st.text_input("Vision Model", value=vision_model)
