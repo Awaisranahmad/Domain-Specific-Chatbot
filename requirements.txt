@@ -4,5 +4,4 @@ langchain-core
 matplotlib
 pillow
 groq
-
 pandas
