@@ -16,113 +16,219 @@ st.set_page_config(
 )
 
 # =========================================================
-# CUSTOM CSS
+# CUSTOM CSS – MODERN & POLISHED
 # =========================================================
 st.markdown(
     """
     <style>
+        /* Global styles */
         .main {
-            background: #F8FAFC;
+            background: #F1F5F9;
         }
 
-        h1, h2, h3, h4 {
-            color: #1E3A8A !important;
+        h1, h2, h3, h4, h5, h6 {
+            color: #0F172A !important;
+            font-weight: 600;
         }
 
+        /* Cards */
         .soft-card {
             background: #FFFFFF;
-            border: 1px solid #E5E7EB;
-            border-radius: 20px;
-            padding: 18px;
-            box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
-            margin-bottom: 16px;
+            border-radius: 24px;
+            padding: 24px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.02);
+            margin-bottom: 24px;
+            border: 1px solid #E2E8F0;
+            transition: box-shadow 0.2s ease;
+        }
+
+        .soft-card:hover {
+            box-shadow: 0 20px 30px -10px rgba(0, 0, 0, 0.08);
         }
 
         .sidebar-card {
-            background: linear-gradient(180deg, #ffffff, #f8fbff);
-            border: 1px solid #E5E7EB;
-            border-radius: 18px;
-            padding: 16px;
-            margin-bottom: 14px;
+            background: #FFFFFF;
+            border-radius: 20px;
+            padding: 20px;
+            margin-bottom: 20px;
+            border: 1px solid #E2E8F0;
+            box-shadow: 0 4px 6px -2px rgba(0, 0, 0, 0.03);
         }
 
+        /* Disclaimer box */
         .disclaimer-box {
             background: #FEF2F2;
-            border-left: 4px solid #DC2626;
-            color: #991B1B;
-            padding: 12px 14px;
-            border-radius: 10px;
-            font-size: 0.92rem;
+            border-left: 6px solid #DC2626;
+            color: #7F1D1D;
+            padding: 16px 18px;
+            border-radius: 16px;
+            font-size: 0.9rem;
+            line-height: 1.6;
+            margin-top: 8px;
+        }
+
+        /* Chat bubbles */
+        .chat-user {
+            background: linear-gradient(145deg, #4F46E5, #7C3AED);
+            color: white;
+            padding: 16px 20px;
+            border-radius: 24px 24px 8px 24px;
+            margin: 12px 0 16px auto;
+            width: fit-content;
+            max-width: 85%;
+            box-shadow: 0 12px 18px -6px rgba(79, 70, 229, 0.2);
+            font-size: 1rem;
             line-height: 1.5;
         }
 
-        .chat-user {
-            background: linear-gradient(135deg, #2563EB, #7C3AED);
-            color: white;
-            padding: 14px 16px;
-            border-radius: 18px 18px 6px 18px;
-            margin: 10px 0 14px auto;
-            width: fit-content;
-            max-width: 88%;
-            box-shadow: 0 8px 18px rgba(37, 99, 235, 0.18);
+        .chat-ai {
+            background: #FFFFFF;
+            border: 1px solid #E2E8F0;
+            border-left: 6px solid #8B5CF6;
+            color: #0F172A;
+            padding: 16px 20px;
+            border-radius: 24px 24px 24px 8px;
+            margin: 12px 0 16px 0;
+            max-width: 90%;
+            box-shadow: 0 4px 10px -4px rgba(0, 0, 0, 0.02);
+            font-size: 1rem;
+            line-height: 1.6;
         }
 
-        .chat-ai {
-            background: #F8FAFC;
-            border: 1px solid #E2E8F0;
-            border-left: 5px solid #8B5CF6;
+        /* Typography */
+        .section-title {
+            font-size: 1.25rem;
+            font-weight: 700;
             color: #0F172A;
-            padding: 14px 16px;
-            border-radius: 18px 18px 18px 6px;
-            margin: 10px 0 14px 0;
-            max-width: 95%;
+            margin-bottom: 1.2rem;
+            letter-spacing: -0.01em;
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
 
         .tiny-muted {
-            font-size: 0.88rem;
+            font-size: 0.85rem;
             color: #64748B;
-        }
-
-        .section-title {
-            font-size: 1.05rem;
-            font-weight: 700;
-            color: #0F172A;
-            margin-bottom: 0.75rem;
         }
 
         .upload-hint {
             color: #475569;
-            font-size: 0.92rem;
-            margin-top: -4px;
+            font-size: 0.9rem;
+            margin-top: 6px;
+            margin-bottom: 8px;
         }
 
-        .stButton>button {
-            background: #6D28D9;
+        /* Buttons */
+        .stButton > button {
+            background: #4F46E5;
             color: white;
             border: none;
-            border-radius: 12px;
-            padding: 0.55rem 1rem;
+            border-radius: 16px;
+            padding: 0.6rem 1.2rem;
             font-weight: 600;
+            font-size: 0.95rem;
+            transition: all 0.2s;
+            box-shadow: 0 4px 6px -2px rgba(79, 70, 229, 0.2);
+            border: 1px solid rgba(255,255,255,0.1);
         }
 
-        .stButton>button:hover {
-            background: #5B21B6;
+        .stButton > button:hover {
+            background: #4338CA;
+            transform: translateY(-1px);
+            box-shadow: 0 8px 12px -4px rgba(79, 70, 229, 0.25);
             color: white;
+            border-color: rgba(255,255,255,0.2);
         }
 
-        .stDownloadButton>button {
-            border-radius: 12px;
+        .stDownloadButton > button {
+            border-radius: 16px;
             font-weight: 600;
+            background: #FFFFFF;
+            color: #1E293B;
+            border: 1px solid #CBD5E1;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
         }
 
+        .stDownloadButton > button:hover {
+            background: #F8FAFC;
+            border-color: #94A3B8;
+            color: #0F172A;
+        }
+
+        /* Report display box */
         .report-box {
             white-space: pre-wrap;
-            background: #FFFFFF;
+            background: #F8FAFC;
             border: 1px solid #E2E8F0;
+            border-radius: 20px;
+            padding: 20px;
+            min-height: 240px;
+            line-height: 1.7;
+            font-size: 0.95rem;
+            color: #1E293B;
+            overflow-x: auto;
+        }
+
+        /* Upload area custom styling */
+        .upload-container {
+            background: #F8FAFC;
+            border-radius: 20px;
+            padding: 16px 18px;
+            border: 1.5px dashed #94A3B8;
+            margin-bottom: 10px;
+            transition: border-color 0.2s;
+        }
+
+        .upload-container:hover {
+            border-color: #4F46E5;
+        }
+
+        /* File uploader label */
+        div[data-testid="stFileUploader"] > section {
+            border-radius: 20px;
+        }
+
+        div[data-testid="stFileUploader"] button {
+            border-radius: 12px !important;
+            background: white !important;
+            border: 1px solid #CBD5E1 !important;
+            color: #1E293B !important;
+            font-weight: 500;
+        }
+
+        /* Image preview */
+        .image-preview-card {
+            border-radius: 20px;
+            overflow: hidden;
+            border: 1px solid #E2E8F0;
+            margin-top: 16px;
+            margin-bottom: 16px;
+            box-shadow: 0 6px 12px -6px rgba(0,0,0,0.05);
+        }
+
+        /* Export section */
+        .export-section {
+            background: #F1F5F9;
             border-radius: 16px;
-            padding: 14px;
-            min-height: 280px;
-            line-height: 1.65;
+            padding: 16px;
+            margin-top: 24px;
+        }
+
+        /* Chat input area */
+        .chat-input-row {
+            background: #FFFFFF;
+            border-radius: 20px;
+            padding: 8px 8px 8px 16px;
+            border: 1px solid #E2E8F0;
+            box-shadow: 0 4px 8px -2px rgba(0,0,0,0.02);
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .chat-user, .chat-ai {
+                max-width: 95%;
+            }
         }
     </style>
     """,
@@ -130,7 +236,7 @@ st.markdown(
 )
 
 # =========================================================
-# PROMPTS
+# PROMPTS (unchanged)
 # =========================================================
 MEDICAL_DISCLAIMER = """
 MediAssist AI Pro is an informational tool only. It is not a licensed healthcare provider.
@@ -191,7 +297,7 @@ Rules:
 """
 
 # =========================================================
-# HELPERS
+# HELPERS (unchanged except maybe minor tweaks)
 # =========================================================
 def get_groq_client():
     api_key = st.secrets.get("GROQ_API_KEY", "") or os.getenv("GROQ_API_KEY", "")
@@ -302,7 +408,7 @@ def init_state():
         st.session_state.last_action = ""
 
 # =========================================================
-# APP
+# MAIN APP
 # =========================================================
 def main():
     init_state()
@@ -310,23 +416,25 @@ def main():
     client = get_groq_client()
     text_model, vision_model = get_models()
 
-    # SIDEBAR
+    # ---------- SIDEBAR ----------
     with st.sidebar:
         st.markdown("## 🩺 MediAssist AI Pro")
+        st.markdown("#### Intelligent Medical Assistant")
+
         st.markdown('<div class="sidebar-card">', unsafe_allow_html=True)
-        st.markdown("### Models")
-        text_model = st.text_input("Text model", value=text_model)
-        vision_model = st.text_input("Vision model", value=vision_model)
+        st.markdown("### ⚙️ Model Configuration")
+        text_model = st.text_input("Text model", value=text_model, help="Groq text model for chat")
+        vision_model = st.text_input("Vision model", value=vision_model, help="Groq vision model for report analysis")
         st.markdown("</div>", unsafe_allow_html=True)
 
         st.markdown('<div class="sidebar-card">', unsafe_allow_html=True)
-        st.markdown("### Safety")
+        st.markdown("### ⚠️ Safety Disclaimer")
         st.markdown(f'<div class="disclaimer-box">{MEDICAL_DISCLAIMER}</div>', unsafe_allow_html=True)
-        safety_ok = st.checkbox("I understand the disclaimer")
+        safety_ok = st.checkbox("I understand and accept the disclaimer", value=False)
         st.markdown("</div>", unsafe_allow_html=True)
 
         st.markdown('<div class="sidebar-card">', unsafe_allow_html=True)
-        if st.button("Clear history", use_container_width=True):
+        if st.button("🗑️ Clear conversation & report", use_container_width=True):
             st.session_state.messages = []
             st.session_state.report_summary = ""
             st.session_state.uploaded_name = ""
@@ -335,75 +443,101 @@ def main():
             st.rerun()
         st.markdown("</div>", unsafe_allow_html=True)
 
+        st.markdown("---")
+        st.caption("v2.0 · Made with ❤️ for better care")
+
     if not safety_ok:
-        st.info("Please accept the disclaimer in the sidebar to continue.")
+        st.info("👈 Please accept the disclaimer in the sidebar to continue.")
         st.stop()
 
-    # HEADER
-    st.markdown("# 🩺 MediAssist AI Pro")
-    st.markdown("Medical report analysis, safe medical Q&A, and medicine guidance support.")
+    # ---------- HEADER ----------
+    col_title, _ = st.columns([6, 1])
+    with col_title:
+        st.markdown("# 🩺 MediAssist AI Pro")
+        st.markdown("##### Medical report analysis, safe Q&A, and medicine guidance — all in one place.")
     st.markdown("---")
 
-    # MAIN LAYOUT
-    left, right = st.columns([1.45, 1.0], gap="large")
+    # ---------- MAIN LAYOUT ----------
+    left, right = st.columns([1.5, 1.0], gap="large")
 
-    # LEFT COLUMN
+    # LEFT COLUMN: Chat & Upload
     with left:
+        # Upload Card
         st.markdown('<div class="soft-card">', unsafe_allow_html=True)
-        st.markdown('<div class="section-title">Patient Interaction & Chat</div>', unsafe_allow_html=True)
+        st.markdown('<div class="section-title"><span>📋 Upload Medical Report</span></div>', unsafe_allow_html=True)
 
-        # Top action row: upload + text + send + medicine suggestion
-        c1, c2, c3, c4 = st.columns([1.15, 5.2, 1.2, 2.0], vertical_alignment="bottom")
-
-        with c1:
+        upload_col1, upload_col2 = st.columns([4, 1])
+        with upload_col1:
             uploaded_file = st.file_uploader(
-                "📎 Upload",
+                "Drop your medical report image here (JPG, PNG)",
                 type=["jpg", "jpeg", "png"],
-                label_visibility="visible",
-                help="Upload a medical report image",
-            )
-
-        with c2:
-            user_text = st.text_input(
-                "Type your question",
-                placeholder="Ask about the report, symptoms, tests, or health terms...",
                 label_visibility="collapsed",
             )
+        with upload_col2:
+            st.markdown("<br>", unsafe_allow_html=True)  # spacer
+            if st.button("📤 Analyze", use_container_width=True, key="analyze_btn"):
+                if uploaded_file is not None:
+                    st.session_state.last_action = "force_analyze"
+                    st.rerun()
+                else:
+                    st.warning("Please upload an image first.")
 
-        with c3:
-            send_clicked = st.button("Send", use_container_width=True)
+        if uploaded_file is not None:
+            # Only process if file changed or forced
+            if (uploaded_file.name != st.session_state.uploaded_name) or (st.session_state.last_action == "force_analyze"):
+                st.session_state.uploaded_name = uploaded_file.name
+                raw_bytes = uploaded_file.getvalue()
+                resized_bytes = resize_image_bytes(raw_bytes)
+                st.session_state.uploaded_preview = resized_bytes
 
-        with c4:
-            med_clicked = st.button("Medicine suggestion", use_container_width=True)
+                with st.spinner("🔍 Analyzing report image with AI..."):
+                    try:
+                        report_text = analyze_image(client, vision_model, resized_bytes)
+                        st.session_state.report_summary = report_text
+                        st.session_state.last_action = ""
+                    except Exception as e:
+                        st.session_state.report_summary = f"❌ Error analyzing image: {e}"
+                        st.session_state.last_action = ""
 
-        st.markdown('<div class="upload-hint">Upload a report, then ask a question. The right panel will show the extracted analysis.</div>', unsafe_allow_html=True)
+                st.rerun()
 
-        # Upload processing
-        if uploaded_file is not None and uploaded_file.name != st.session_state.uploaded_name:
-            st.session_state.uploaded_name = uploaded_file.name
+        # Show a thumbnail if report exists
+        if st.session_state.uploaded_preview:
+            st.markdown('<div class="image-preview-card">', unsafe_allow_html=True)
+            st.image(st.session_state.uploaded_preview, caption="📸 Uploaded report preview", use_container_width=True)
+            st.markdown('</div>', unsafe_allow_html=True)
+            st.markdown('<p class="tiny-muted">Report data extracted and available in right panel →</p>', unsafe_allow_html=True)
+        else:
+            st.info("👆 Upload a medical report image to begin.")
 
-            raw_bytes = uploaded_file.getvalue()
-            resized_bytes = resize_image_bytes(raw_bytes)
-            st.session_state.uploaded_preview = resized_bytes
+        st.markdown("</div>", unsafe_allow_html=True)  # end upload card
 
-            with st.spinner("Analyzing report image..."):
-                try:
-                    report_text = analyze_image(client, vision_model, resized_bytes)
-                    st.session_state.report_summary = report_text
-                    st.session_state.last_action = "upload"
-                except Exception as e:
-                    st.session_state.report_summary = f"Error analyzing image: {e}"
-                    st.session_state.last_action = "upload_error"
+        # Chat Card
+        st.markdown('<div class="soft-card">', unsafe_allow_html=True)
+        st.markdown('<div class="section-title"><span>💬 Conversation</span></div>', unsafe_allow_html=True)
 
-            st.rerun()
+        # Chat input row with better styling
+        with st.container():
+            col1, col2, col3 = st.columns([6, 1.2, 1.5])
+            with col1:
+                user_text = st.text_input(
+                    "Type your question here...",
+                    placeholder="Ask about the report, symptoms, tests, or health terms...",
+                    label_visibility="collapsed",
+                    key="chat_input",
+                )
+            with col2:
+                send_clicked = st.button("Send ➤", use_container_width=True, key="send_btn")
+            with col3:
+                med_clicked = st.button("💊 Medicine guidance", use_container_width=True, key="med_btn")
 
-        # Send message
+        # Process send
         if (send_clicked or st.session_state.last_action == "send_pending") and user_text.strip():
             st.session_state.last_action = "send_pending"
 
             if is_urgent(user_text):
                 urgent_reply = (
-                    "Your message mentions symptoms that may need urgent medical attention. "
+                    "⚠️ **Your message mentions symptoms that may need urgent medical attention.**\n\n"
                     "Please seek immediate care from a doctor or emergency service if symptoms are severe or worsening.\n\n"
                     "Note: I am an AI assistant, not a licensed doctor. Please consult a qualified healthcare professional for medical advice."
                 )
@@ -412,7 +546,7 @@ def main():
                 st.session_state.last_action = ""
                 st.rerun()
 
-            with st.spinner("Generating response..."):
+            with st.spinner("🤔 Thinking..."):
                 try:
                     messages = [{"role": "system", "content": SYSTEM_PROMPT}]
                     if st.session_state.report_summary:
@@ -422,7 +556,7 @@ def main():
                                 "content": f"Relevant medical report summary:\n{st.session_state.report_summary}"
                             }
                         )
-
+                    # Include last 10 messages for context
                     messages.extend(st.session_state.messages[-10:])
                     messages.append({"role": "user", "content": user_text})
 
@@ -436,13 +570,13 @@ def main():
             st.session_state.last_action = ""
             st.rerun()
 
-        # Medicine suggestion button
+        # Process medicine guidance
         if med_clicked:
             source_text = user_text.strip() or st.session_state.report_summary.strip()
             if not source_text:
-                st.warning("Add a text query or upload a report first.")
+                st.warning("Please add a text query or upload a report first.")
             else:
-                with st.spinner("Generating cautious medicine guidance..."):
+                with st.spinner("🧪 Preparing cautious medicine guidance..."):
                     try:
                         messages = [
                             {"role": "system", "content": build_medicine_prompt(st.session_state.report_summary, user_text)},
@@ -450,7 +584,7 @@ def main():
                         ]
                         med_response = groq_text(client, text_model, messages, max_tokens=850)
                         st.session_state.messages.append(
-                            {"role": "user", "content": f"Medicine guidance request: {source_text}"}
+                            {"role": "user", "content": f"💊 Medicine guidance request: {source_text}"}
                         )
                         st.session_state.messages.append(
                             {"role": "assistant", "content": med_response}
@@ -461,73 +595,78 @@ def main():
                         )
                 st.rerun()
 
-        # History
+        # Chat history display
         st.markdown("---")
-        st.markdown('<div class="section-title">Conversation History</div>', unsafe_allow_html=True)
-
+        st.markdown('<div style="margin-top: 10px;">', unsafe_allow_html=True)
         if not st.session_state.messages:
-            st.info("No conversation yet. Ask a question or upload a medical report.")
+            st.info("No conversation yet. Ask a question or upload a report to start.")
         else:
             for msg in st.session_state.messages:
                 render_message(msg["role"], msg["content"])
+        st.markdown('</div>', unsafe_allow_html=True)
 
-        st.markdown("</div>", unsafe_allow_html=True)
+        st.markdown("</div>", unsafe_allow_html=True)  # end chat card
 
-    # RIGHT COLUMN
+    # RIGHT COLUMN: Clinical Insights
     with right:
         st.markdown('<div class="soft-card">', unsafe_allow_html=True)
-        st.markdown('<div class="section-title">Clinical Insights</div>', unsafe_allow_html=True)
-
-        if st.session_state.uploaded_preview:
-            st.image(st.session_state.uploaded_preview, caption="Uploaded report preview", use_container_width=True)
-            st.write("")
+        st.markdown('<div class="section-title"><span>🔬 Clinical Insights</span></div>', unsafe_allow_html=True)
 
         if st.session_state.report_summary:
-            st.markdown("### Extracted Report Data")
+            st.markdown("### 📄 Extracted Report Data")
             st.markdown(
                 f'<div class="report-box">{st.session_state.report_summary}</div>',
                 unsafe_allow_html=True
             )
 
-            st.write("")
-            st.markdown("### Export")
+            st.markdown('<div class="export-section">', unsafe_allow_html=True)
+            st.markdown("#### 📎 Export Summary")
             export_text = (
-                "MediAssist AI Pro Report Summary\n\n"
+                "MediAssist AI Pro Report Summary\n"
+                "=====================================\n\n"
                 f"{MEDICAL_DISCLAIMER}\n\n"
                 "EXTRACTED REPORT DATA\n"
+                "----------------------\n"
                 f"{st.session_state.report_summary}\n\n"
                 "CONVERSATION HISTORY\n"
+                "--------------------\n"
             )
             for msg in st.session_state.messages:
                 export_text += f"\n[{msg['role'].upper()}]\n{msg['content']}\n"
 
             st.download_button(
-                "Download summary TXT",
+                label="📥 Download as TXT",
                 data=export_text,
                 file_name="mediassist_summary.txt",
                 mime="text/plain",
                 use_container_width=True,
             )
+            st.markdown('</div>', unsafe_allow_html=True)
         else:
             st.markdown(
                 """
                 <div style="
-                    background:#FFFFFF;
-                    border:1px dashed #CBD5E1;
-                    border-radius:16px;
-                    padding:22px;
-                    color:#64748B;
-                    text-align:center;">
-                    Upload a medical report to generate structured clinical insights here.
+                    background: #F8FAFC;
+                    border: 1.5px dashed #94A3B8;
+                    border-radius: 24px;
+                    padding: 32px 24px;
+                    color: #475569;
+                    text-align: center;
+                    margin: 20px 0;
+                ">
+                    <span style="font-size: 2.5rem; display: block; margin-bottom: 10px;">📋</span>
+                    <h4 style="color: #334155; margin-bottom: 8px;">No report analyzed yet</h4>
+                    <p style="font-size: 0.95rem;">Upload a medical report in the left panel to generate structured clinical insights here.</p>
                 </div>
                 """,
                 unsafe_allow_html=True,
             )
 
-        st.markdown("</div>", unsafe_allow_html=True)
+        st.markdown("</div>", unsafe_allow_html=True)  # end insights card
 
+    # Footer
     st.markdown("---")
-    st.caption("MediAssist AI Pro • Informational only • Not a substitute for professional medical advice.")
+    st.caption("🩺 MediAssist AI Pro · Informational only · Not a substitute for professional medical advice.")
 
 if __name__ == "__main__":
     main()
