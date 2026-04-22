@@ -1,106 +1,160 @@
 import streamlit as st
 import os
 import base64
-import pandas as pd
-from PIL import Image
 import io
+from PIL import Image
 from groq import Groq
 
 # =========================================================
-# 1) PAGE CONFIGURATION & THEME
+# PAGE CONFIG
 # =========================================================
 st.set_page_config(
     page_title="MediAssist AI Pro",
-    page_icon="⚕️",
+    page_icon="🩺",
     layout="wide",
-    initial_sidebar_state="expanded"
+    initial_sidebar_state="expanded",
 )
 
-st.markdown("""
-<style>
-    .main {
-        background-color: #F8FAFC;
-    }
-    h1, h2, h3, h4 {
-        color: #1E3A8A;
-    }
-    .stButton>button {
-        background-color: #6D28D9;
-        color: white;
-        border-radius: 10px;
-        border: none;
-        padding: 0.55rem 1rem;
-    }
-    .stButton>button:hover {
-        background-color: #5B21B6;
-        color: white;
-    }
-    .disclaimer-box {
-        background-color: #FEF2F2;
-        border-left: 4px solid #DC2626;
-        padding: 12px 14px;
-        margin-bottom: 18px;
-        color: #991B1B;
-        font-size: 0.92em;
-        border-radius: 8px;
-    }
-    .insights-panel {
-        background-color: #FFFFFF;
-        padding: 20px;
-        border-radius: 14px;
-        box-shadow: 0 4px 14px -2px rgba(0, 0, 0, 0.08);
-        border-top: 4px solid #6D28D9;
-    }
-    .small-muted {
-        color: #64748B;
-        font-size: 0.92rem;
-    }
-    .user-msg {
-        background: linear-gradient(135deg, #2563EB, #7C3AED);
-        color: white;
-        padding: 12px 16px;
-        border-radius: 16px 16px 4px 16px;
-        margin-bottom: 10px;
-    }
-    .ai-msg {
-        background: #F8FAFC;
-        border: 1px solid #E2E8F0;
-        border-left: 5px solid #8B5CF6;
-        color: #0F172A;
-        padding: 12px 16px;
-        border-radius: 16px 16px 16px 4px;
-        margin-bottom: 10px;
-    }
-</style>
-""", unsafe_allow_html=True)
+# =========================================================
+# CUSTOM CSS
+# =========================================================
+st.markdown(
+    """
+    <style>
+        .main {
+            background: #F8FAFC;
+        }
+
+        h1, h2, h3, h4 {
+            color: #1E3A8A !important;
+        }
+
+        .soft-card {
+            background: #FFFFFF;
+            border: 1px solid #E5E7EB;
+            border-radius: 20px;
+            padding: 18px;
+            box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
+            margin-bottom: 16px;
+        }
+
+        .sidebar-card {
+            background: linear-gradient(180deg, #ffffff, #f8fbff);
+            border: 1px solid #E5E7EB;
+            border-radius: 18px;
+            padding: 16px;
+            margin-bottom: 14px;
+        }
+
+        .disclaimer-box {
+            background: #FEF2F2;
+            border-left: 4px solid #DC2626;
+            color: #991B1B;
+            padding: 12px 14px;
+            border-radius: 10px;
+            font-size: 0.92rem;
+            line-height: 1.5;
+        }
+
+        .chat-user {
+            background: linear-gradient(135deg, #2563EB, #7C3AED);
+            color: white;
+            padding: 14px 16px;
+            border-radius: 18px 18px 6px 18px;
+            margin: 10px 0 14px auto;
+            width: fit-content;
+            max-width: 88%;
+            box-shadow: 0 8px 18px rgba(37, 99, 235, 0.18);
+        }
+
+        .chat-ai {
+            background: #F8FAFC;
+            border: 1px solid #E2E8F0;
+            border-left: 5px solid #8B5CF6;
+            color: #0F172A;
+            padding: 14px 16px;
+            border-radius: 18px 18px 18px 6px;
+            margin: 10px 0 14px 0;
+            max-width: 95%;
+        }
+
+        .tiny-muted {
+            font-size: 0.88rem;
+            color: #64748B;
+        }
+
+        .section-title {
+            font-size: 1.05rem;
+            font-weight: 700;
+            color: #0F172A;
+            margin-bottom: 0.75rem;
+        }
+
+        .upload-hint {
+            color: #475569;
+            font-size: 0.92rem;
+            margin-top: -4px;
+        }
+
+        .stButton>button {
+            background: #6D28D9;
+            color: white;
+            border: none;
+            border-radius: 12px;
+            padding: 0.55rem 1rem;
+            font-weight: 600;
+        }
+
+        .stButton>button:hover {
+            background: #5B21B6;
+            color: white;
+        }
+
+        .stDownloadButton>button {
+            border-radius: 12px;
+            font-weight: 600;
+        }
+
+        .report-box {
+            white-space: pre-wrap;
+            background: #FFFFFF;
+            border: 1px solid #E2E8F0;
+            border-radius: 16px;
+            padding: 14px;
+            min-height: 280px;
+            line-height: 1.65;
+        }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
 
 # =========================================================
-# 2) SYSTEM CONSTANTS & PROMPTS
+# PROMPTS
 # =========================================================
 MEDICAL_DISCLAIMER = """
-**CRITICAL DISCLAIMER:** MediAssist AI Pro is an informational tool only. 
-It is NOT a licensed healthcare provider. The AI cannot and will not diagnose illnesses, 
-prescribe medications, or provide definitive medical advice. Always consult a certified 
-doctor before making any health decisions.
+MediAssist AI Pro is an informational tool only. It is not a licensed healthcare provider.
+It cannot diagnose illnesses, prescribe medication, or replace a doctor.
+For urgent, severe, or worsening symptoms, seek immediate medical care.
 """
 
 SYSTEM_PROMPT = """
-You are MediAssist AI Pro, an advanced medical data summarization assistant.
+You are MediAssist AI Pro, a professional medical assistant.
 
-Your primary role:
-- Explain medical terminology
-- Summarize lab reports
-- Answer health-related questions in clear, accessible language
-- Stay professional, cautious, and objective
+Your scope:
+- Explain medical terms
+- Summarize medical reports
+- Answer health and wellness questions
+- Give safe, conservative, informational guidance only
 
-STRICT RULES:
-1. NEVER diagnose a condition.
-2. NEVER prescribe medication or treatments.
-3. NEVER claim to replace a doctor.
-4. If the user describes acute, severe, or life-threatening symptoms, tell them to seek emergency medical care immediately.
-5. If the report is unclear, say that some parts are unreadable.
-6. Always keep the tone calm, respectful, and medically responsible.
-7. End every response with:
+Hard rules:
+1. Never diagnose.
+2. Never claim certainty when information is incomplete.
+3. Never present yourself as a doctor.
+4. If symptoms sound urgent, tell the user to seek immediate care.
+5. If the user asks for medicines, provide only cautious informational suggestions, clearly say they must verify with a doctor/pharmacist, and do not give unsafe or high-risk recommendations.
+6. Be calm, respectful, and concise.
+7. End every answer with:
    "Note: I am an AI assistant, not a licensed doctor. Please consult a qualified healthcare professional for medical advice."
 """
 
@@ -108,310 +162,372 @@ VISION_PROMPT = """
 You are MediAssist AI Pro, a medical report image analyzer.
 
 Task:
-- Read the uploaded medical report carefully.
-- Extract visible medical text, test names, values, units, and reference ranges.
-- Identify abnormal, high, low, or flagged values if visible.
-- Summarize the report clearly in simple language.
+- Read the uploaded medical report image carefully.
+- Extract visible patient details, test names, values, units, and reference ranges.
+- Identify values that appear high, low, or flagged if visible.
+- Summarize findings clearly in simple language.
+- If text is blurry or unreadable, say so.
 - Do not diagnose.
-- Do not hallucinate unreadable text.
-- If something is unclear, mention that it may be difficult to read.
+- Do not invent missing values.
 
 End with:
 "Note: I am an AI assistant, not a doctor. Please consult a qualified healthcare professional."
 """
 
+MEDICINE_PROMPT = """
+You are MediAssist AI Pro.
+
+The user wants safe informational medicine guidance based on their message and/or report summary.
+Rules:
+- Do NOT diagnose.
+- Do NOT prescribe.
+- Do NOT claim any medicine is safe for every patient.
+- Give only cautious, general, non-personalized informational suggestions.
+- Prefer supportive care, red-flag warnings, and advice to consult a doctor/pharmacist.
+- If the user mentions a condition that could be serious, advise urgent medical review.
+- If medication names are mentioned, explain them in a neutral way and mention common cautions only at a high level.
+- End with:
+  "Note: I am an AI assistant, not a licensed doctor. Please consult a qualified healthcare professional for medical advice."
+"""
+
 # =========================================================
-# 3) CORE LOGIC CLASSES
+# HELPERS
 # =========================================================
-class DocumentProcessor:
-    """Handles image preparation for the multimodal LLM."""
+def get_groq_client():
+    api_key = st.secrets.get("GROQ_API_KEY", "") or os.getenv("GROQ_API_KEY", "")
+    if not api_key:
+        st.error("GROQ_API_KEY is missing. Add it in Streamlit secrets.")
+        st.stop()
+    return Groq(api_key=api_key)
 
-    @staticmethod
-    def encode_image(uploaded_file):
-        """Resizes image and encodes it to base64."""
-        image = Image.open(uploaded_file)
+def get_models():
+    text_model = st.secrets.get("GROQ_TEXT_MODEL", os.getenv("GROQ_TEXT_MODEL", "llama-3.3-70b-versatile"))
+    vision_model = st.secrets.get(
+        "GROQ_VISION_MODEL",
+        os.getenv("GROQ_VISION_MODEL", "meta-llama/llama-4-maverick-17b-128e-instruct"),
+    )
+    return text_model, vision_model
 
-        if image.mode != "RGB":
-            image = image.convert("RGB")
+def resize_image_bytes(file_bytes: bytes, max_size=(1200, 1200)) -> bytes:
+    img = Image.open(io.BytesIO(file_bytes))
+    if img.mode != "RGB":
+        img = img.convert("RGB")
+    img.thumbnail(max_size, Image.Resampling.LANCZOS)
+    buf = io.BytesIO()
+    img.save(buf, format="JPEG", quality=88, optimize=True)
+    return buf.getvalue()
 
-        # Resize for faster API calls and lower memory usage
-        image.thumbnail((1024, 1024))
+def to_data_url(image_bytes: bytes) -> str:
+    encoded = base64.b64encode(image_bytes).decode("utf-8")
+    return f"data:image/jpeg;base64,{encoded}"
 
-        buffered = io.BytesIO()
-        image.save(buffered, format="JPEG", quality=85, optimize=True)
-        return base64.b64encode(buffered.getvalue()).decode("utf-8")
+def is_urgent(text: str) -> bool:
+    text = text.lower()
+    flags = [
+        "chest pain", "shortness of breath", "difficulty breathing", "trouble breathing",
+        "fainting", "unconscious", "severe bleeding", "stroke", "one sided weakness",
+        "suicidal", "seizure", "blue lips", "confusion", "severe headache"
+    ]
+    return any(flag in text for flag in flags)
 
-    @staticmethod
-    def image_to_bytes(uploaded_file):
-        """Return resized image bytes for preview or saving."""
-        image = Image.open(uploaded_file)
-        if image.mode != "RGB":
-            image = image.convert("RGB")
-        image.thumbnail((1024, 1024))
-        buffered = io.BytesIO()
-        image.save(buffered, format="JPEG", quality=85, optimize=True)
-        return buffered.getvalue()
+def render_message(role: str, content: str):
+    if role == "user":
+        st.markdown(f'<div class="chat-user">{content}</div>', unsafe_allow_html=True)
+    else:
+        st.markdown(f'<div class="chat-ai">{content}</div>', unsafe_allow_html=True)
 
+def groq_text(client, model, messages, max_tokens=900):
+    resp = client.chat.completions.create(
+        model=model,
+        messages=messages,
+        temperature=0.35,
+        max_tokens=max_tokens,
+    )
+    return resp.choices[0].message.content.strip()
 
-class GroqInferenceEngine:
-    """Manages API calls to Groq for both vision and text generation."""
-
-    def __init__(self, api_key: str, vision_model: str, text_model: str):
-        self.client = Groq(api_key=api_key)
-        self.vision_model = vision_model
-        self.text_model = text_model
-
-    def analyze_medical_image(self, base64_image: str) -> str:
-        """Extracts medical data from uploaded report image."""
-        try:
-            response = self.client.chat.completions.create(
-                model=self.vision_model,
-                messages=[
+def analyze_image(client, vision_model, image_bytes: bytes) -> str:
+    data_url = to_data_url(image_bytes)
+    resp = client.chat.completions.create(
+        model=vision_model,
+        temperature=0.2,
+        max_tokens=1200,
+        messages=[
+            {"role": "system", "content": VISION_PROMPT},
+            {
+                "role": "user",
+                "content": [
                     {
-                        "role": "system",
-                        "content": VISION_PROMPT
+                        "type": "text",
+                        "text": "Analyze this medical report image and extract all visible report information in a clean, structured format."
                     },
                     {
-                        "role": "user",
-                        "content": [
-                            {
-                                "type": "text",
-                                "text": "Analyze this medical report image and extract all visible medical data in a structured format."
-                            },
-                            {
-                                "type": "image_url",
-                                "image_url": {"url": f"data:image/jpeg;base64,{base64_image}"}
-                            }
-                        ]
+                        "type": "image_url",
+                        "image_url": {"url": data_url}
                     }
-                ],
-                temperature=0.2,
-                max_tokens=1200
-            )
-            return response.choices[0].message.content.strip()
-        except Exception as e:
-            return f"Error processing image: {str(e)}"
+                ]
+            }
+        ],
+    )
+    return resp.choices[0].message.content.strip()
 
-    def generate_chat_response(self, chat_history: list) -> str:
-        """Generates a response using text model and conversation history."""
-        try:
-            messages = [{"role": "system", "content": SYSTEM_PROMPT}] + chat_history
-            response = self.client.chat.completions.create(
-                model=self.text_model,
-                messages=messages,
-                temperature=0.4,
-                max_tokens=1200
-            )
-            return response.choices[0].message.content.strip()
-        except Exception as e:
-            return f"Error generating response: {str(e)}"
+def build_chat_prompt(report_summary: str, user_message: str):
+    prompt = SYSTEM_PROMPT
+    context = []
+    if report_summary:
+        context.append(f"Medical report summary:\n{report_summary}")
+    if user_message:
+        context.append(f"User request:\n{user_message}")
+    return prompt + "\n\n" + "\n\n".join(context)
 
+def build_medicine_prompt(report_summary: str, user_message: str):
+    sections = [MEDICINE_PROMPT]
+    if report_summary:
+        sections.append(f"Report summary:\n{report_summary}")
+    if user_message:
+        sections.append(f"User message:\n{user_message}")
+    return "\n\n".join(sections)
 
-# =========================================================
-# 4) UTILITIES
-# =========================================================
-def initialize_session_state():
+def init_state():
     if "messages" not in st.session_state:
         st.session_state.messages = []
     if "report_summary" not in st.session_state:
-        st.session_state.report_summary = None
-    if "api_key_valid" not in st.session_state:
-        st.session_state.api_key_valid = False
-    if "last_uploaded_name" not in st.session_state:
-        st.session_state.last_uploaded_name = None
-    if "engine" not in st.session_state:
-        st.session_state.engine = None
-
-
-def is_urgent_symptom(text: str) -> bool:
-    urgent_keywords = [
-        "chest pain", "shortness of breath", "difficulty breathing", "trouble breathing",
-        "fainting", "unconscious", "severe bleeding", "stroke", "one sided weakness",
-        "suicidal", "severe headache", "blue lips", "seizure", "confusion"
-    ]
-    text_lower = text.lower()
-    return any(k in text_lower for k in urgent_keywords)
-
-
-def render_chat_message(role: str, content: str):
-    if role == "user":
-        st.markdown(f'<div class="user-msg">{content}</div>', unsafe_allow_html=True)
-    else:
-        st.markdown(f'<div class="ai-msg">{content}</div>', unsafe_allow_html=True)
-
+        st.session_state.report_summary = ""
+    if "uploaded_name" not in st.session_state:
+        st.session_state.uploaded_name = ""
+    if "uploaded_preview" not in st.session_state:
+        st.session_state.uploaded_preview = None
+    if "engine_ready" not in st.session_state:
+        st.session_state.engine_ready = False
+    if "last_action" not in st.session_state:
+        st.session_state.last_action = ""
 
 # =========================================================
-# 5) MAIN APP
+# APP
 # =========================================================
 def main():
-    initialize_session_state()
+    init_state()
 
-    # ---------- Sidebar ----------
+    client = get_groq_client()
+    text_model, vision_model = get_models()
+
+    # SIDEBAR
     with st.sidebar:
-        st.title("⚕️ MediAssist Pro")
-        st.markdown("### Configuration")
+        st.markdown("## 🩺 MediAssist AI Pro")
+        st.markdown('<div class="sidebar-card">', unsafe_allow_html=True)
+        st.markdown("### Models")
+        text_model = st.text_input("Text model", value=text_model)
+        vision_model = st.text_input("Vision model", value=vision_model)
+        st.markdown("</div>", unsafe_allow_html=True)
 
-        groq_api_key = st.secrets.get("GROQ_API_KEY", "") or os.getenv("GROQ_API_KEY", "")
-        if not groq_api_key:
-            groq_api_key = st.text_input("Enter Groq API Key", type="password")
-
-        vision_model = st.secrets.get("GROQ_VISION_MODEL", os.getenv("GROQ_VISION_MODEL", "meta-llama/llama-4-scout-17b-16e-instruct"))
-        text_model = st.secrets.get("GROQ_TEXT_MODEL", os.getenv("GROQ_TEXT_MODEL", "llama-3.3-70b-versatile"))
-
-        st.markdown("#### Model Settings")
-        vision_model = st.text_input("Vision Model", value=vision_model)
-        text_model = st.text_input("Text Model", value=text_model)
-
-        if groq_api_key:
-            st.session_state.api_key_valid = True
-            st.session_state.engine = GroqInferenceEngine(
-                api_key=groq_api_key,
-                vision_model=vision_model,
-                text_model=text_model
-            )
-            st.success("Groq API ready.")
-        else:
-            st.session_state.api_key_valid = False
-            st.warning("Please provide a Groq API Key to continue.")
-
-        st.markdown("---")
-        st.markdown("### Safety Protocol")
-        safety_agreed = st.checkbox("I agree to the Medical Disclaimer")
-
+        st.markdown('<div class="sidebar-card">', unsafe_allow_html=True)
+        st.markdown("### Safety")
         st.markdown(f'<div class="disclaimer-box">{MEDICAL_DISCLAIMER}</div>', unsafe_allow_html=True)
+        safety_ok = st.checkbox("I understand the disclaimer")
+        st.markdown("</div>", unsafe_allow_html=True)
 
-        if st.button("Clear Session", use_container_width=True):
+        st.markdown('<div class="sidebar-card">', unsafe_allow_html=True)
+        if st.button("Clear history", use_container_width=True):
             st.session_state.messages = []
-            st.session_state.report_summary = None
-            st.session_state.last_uploaded_name = None
+            st.session_state.report_summary = ""
+            st.session_state.uploaded_name = ""
+            st.session_state.uploaded_preview = None
+            st.session_state.last_action = ""
             st.rerun()
+        st.markdown("</div>", unsafe_allow_html=True)
 
-    # ---------- Main Header ----------
-    st.markdown("# ⚕️ MediAssist AI Pro")
-    st.markdown("An advanced multimodal medical assistant for report analysis and health Q&A.")
+    if not safety_ok:
+        st.info("Please accept the disclaimer in the sidebar to continue.")
+        st.stop()
+
+    # HEADER
+    st.markdown("# 🩺 MediAssist AI Pro")
+    st.markdown("Medical report analysis, safe medical Q&A, and medicine guidance support.")
     st.markdown("---")
 
-    # ---------- Access Control ----------
-    if not safety_agreed:
-        st.info("👈 Please agree to the medical disclaimer in the sidebar to begin.")
-        st.stop()
+    # MAIN LAYOUT
+    left, right = st.columns([1.45, 1.0], gap="large")
 
-    if not st.session_state.api_key_valid or st.session_state.engine is None:
-        st.stop()
+    # LEFT COLUMN
+    with left:
+        st.markdown('<div class="soft-card">', unsafe_allow_html=True)
+        st.markdown('<div class="section-title">Patient Interaction & Chat</div>', unsafe_allow_html=True)
 
-    engine = st.session_state.engine
+        # Top action row: upload + text + send + medicine suggestion
+        c1, c2, c3, c4 = st.columns([1.15, 5.2, 1.2, 2.0], vertical_alignment="bottom")
 
-    # ---------- Main Layout ----------
-    col1, col2 = st.columns([6, 4], gap="large")
+        with c1:
+            uploaded_file = st.file_uploader(
+                "📎 Upload",
+                type=["jpg", "jpeg", "png"],
+                label_visibility="visible",
+                help="Upload a medical report image",
+            )
 
-    # =========================================================
-    # COLUMN 1: Upload + Chat
-    # =========================================================
-    with col1:
-        st.markdown("## Patient Interaction & Chat")
+        with c2:
+            user_text = st.text_input(
+                "Type your question",
+                placeholder="Ask about the report, symptoms, tests, or health terms...",
+                label_visibility="collapsed",
+            )
 
-        uploaded_file = st.file_uploader(
-            "Upload Medical Report (JPG, JPEG, PNG)",
-            type=["jpg", "jpeg", "png"]
-        )
+        with c3:
+            send_clicked = st.button("Send", use_container_width=True)
 
-        if uploaded_file is not None and uploaded_file.name != st.session_state.last_uploaded_name:
-            st.session_state.last_uploaded_name = uploaded_file.name
+        with c4:
+            med_clicked = st.button("Medicine suggestion", use_container_width=True)
 
-            with st.spinner("Analyzing medical report via Groq Vision..."):
+        st.markdown('<div class="upload-hint">Upload a report, then ask a question. The right panel will show the extracted analysis.</div>', unsafe_allow_html=True)
+
+        # Upload processing
+        if uploaded_file is not None and uploaded_file.name != st.session_state.uploaded_name:
+            st.session_state.uploaded_name = uploaded_file.name
+
+            raw_bytes = uploaded_file.getvalue()
+            resized_bytes = resize_image_bytes(raw_bytes)
+            st.session_state.uploaded_preview = resized_bytes
+
+            with st.spinner("Analyzing report image..."):
                 try:
-                    b64_image = DocumentProcessor.encode_image(uploaded_file)
-                    extracted_data = engine.analyze_medical_image(b64_image)
-
-                    st.session_state.report_summary = extracted_data
-                    st.session_state.messages.append({
-                        "role": "system",
-                        "content": f"A medical report was uploaded. Extracted contents:\n{extracted_data}"
-                    })
-                    st.success("Report parsed successfully!")
-                    st.rerun()
+                    report_text = analyze_image(client, vision_model, resized_bytes)
+                    st.session_state.report_summary = report_text
+                    st.session_state.last_action = "upload"
                 except Exception as e:
-                    st.error(f"Failed to analyze image: {str(e)}")
+                    st.session_state.report_summary = f"Error analyzing image: {e}"
+                    st.session_state.last_action = "upload_error"
 
-        st.markdown("---")
+            st.rerun()
 
-        st.markdown("### Conversation")
-        for msg in st.session_state.messages:
-            if msg["role"] != "system":
-                with st.chat_message(msg["role"]):
-                    st.markdown(msg["content"])
+        # Send message
+        if (send_clicked or st.session_state.last_action == "send_pending") and user_text.strip():
+            st.session_state.last_action = "send_pending"
 
-        prompt = st.chat_input("Ask a question about your report or health terms...")
-
-        if prompt:
-            st.session_state.messages.append({"role": "user", "content": prompt})
-
-            with st.chat_message("user"):
-                st.markdown(prompt)
-
-            if is_urgent_symptom(prompt):
+            if is_urgent(user_text):
                 urgent_reply = (
-                    "Your message includes symptoms that may need urgent medical attention. "
+                    "Your message mentions symptoms that may need urgent medical attention. "
                     "Please seek immediate care from a doctor or emergency service if symptoms are severe or worsening.\n\n"
                     "Note: I am an AI assistant, not a licensed doctor. Please consult a qualified healthcare professional for medical advice."
                 )
-                with st.chat_message("assistant"):
-                    st.markdown(urgent_reply)
+                st.session_state.messages.append({"role": "user", "content": user_text})
                 st.session_state.messages.append({"role": "assistant", "content": urgent_reply})
+                st.session_state.last_action = ""
                 st.rerun()
 
-            with st.chat_message("assistant"):
-                with st.spinner("Consulting knowledge base..."):
-                    try:
-                        response = engine.generate_chat_response(st.session_state.messages)
-                        st.markdown(response)
-                        st.session_state.messages.append({"role": "assistant", "content": response})
-                    except Exception as e:
-                        error_msg = f"Error generating response: {str(e)}"
-                        st.markdown(error_msg)
-                        st.session_state.messages.append({"role": "assistant", "content": error_msg})
+            with st.spinner("Generating response..."):
+                try:
+                    messages = [{"role": "system", "content": SYSTEM_PROMPT}]
+                    if st.session_state.report_summary:
+                        messages.append(
+                            {
+                                "role": "system",
+                                "content": f"Relevant medical report summary:\n{st.session_state.report_summary}"
+                            }
+                        )
 
-    # =========================================================
-    # COLUMN 2: Report Summary + Export
-    # =========================================================
-    with col2:
-        st.markdown("## Clinical Insights")
+                    messages.extend(st.session_state.messages[-10:])
+                    messages.append({"role": "user", "content": user_text})
+
+                    response = groq_text(client, text_model, messages, max_tokens=950)
+                    st.session_state.messages.append({"role": "user", "content": user_text})
+                    st.session_state.messages.append({"role": "assistant", "content": response})
+                except Exception as e:
+                    st.session_state.messages.append({"role": "user", "content": user_text})
+                    st.session_state.messages.append({"role": "assistant", "content": f"Error generating response: {e}"})
+
+            st.session_state.last_action = ""
+            st.rerun()
+
+        # Medicine suggestion button
+        if med_clicked:
+            source_text = user_text.strip() or st.session_state.report_summary.strip()
+            if not source_text:
+                st.warning("Add a text query or upload a report first.")
+            else:
+                with st.spinner("Generating cautious medicine guidance..."):
+                    try:
+                        messages = [
+                            {"role": "system", "content": build_medicine_prompt(st.session_state.report_summary, user_text)},
+                            {"role": "user", "content": source_text},
+                        ]
+                        med_response = groq_text(client, text_model, messages, max_tokens=850)
+                        st.session_state.messages.append(
+                            {"role": "user", "content": f"Medicine guidance request: {source_text}"}
+                        )
+                        st.session_state.messages.append(
+                            {"role": "assistant", "content": med_response}
+                        )
+                    except Exception as e:
+                        st.session_state.messages.append(
+                            {"role": "assistant", "content": f"Error generating medicine guidance: {e}"}
+                        )
+                st.rerun()
+
+        # History
+        st.markdown("---")
+        st.markdown('<div class="section-title">Conversation History</div>', unsafe_allow_html=True)
+
+        if not st.session_state.messages:
+            st.info("No conversation yet. Ask a question or upload a medical report.")
+        else:
+            for msg in st.session_state.messages:
+                render_message(msg["role"], msg["content"])
+
+        st.markdown("</div>", unsafe_allow_html=True)
+
+    # RIGHT COLUMN
+    with right:
+        st.markdown('<div class="soft-card">', unsafe_allow_html=True)
+        st.markdown('<div class="section-title">Clinical Insights</div>', unsafe_allow_html=True)
+
+        if st.session_state.uploaded_preview:
+            st.image(st.session_state.uploaded_preview, caption="Uploaded report preview", use_container_width=True)
+            st.write("")
 
         if st.session_state.report_summary:
-            st.markdown('<div class="insights-panel">', unsafe_allow_html=True)
-            st.markdown("### 📄 Extracted Report Data")
-            st.markdown(st.session_state.report_summary)
-
-            st.markdown("---")
-            st.markdown("### 📥 Export")
-
-            export_data = (
-                "MediAssist AI Pro Summary\n\n"
-                f"{MEDICAL_DISCLAIMER}\n\n"
-                "REPORT DATA:\n"
-                f"{st.session_state.report_summary}"
+            st.markdown("### Extracted Report Data")
+            st.markdown(
+                f'<div class="report-box">{st.session_state.report_summary}</div>',
+                unsafe_allow_html=True
             )
+
+            st.write("")
+            st.markdown("### Export")
+            export_text = (
+                "MediAssist AI Pro Report Summary\n\n"
+                f"{MEDICAL_DISCLAIMER}\n\n"
+                "EXTRACTED REPORT DATA\n"
+                f"{st.session_state.report_summary}\n\n"
+                "CONVERSATION HISTORY\n"
+            )
+            for msg in st.session_state.messages:
+                export_text += f"\n[{msg['role'].upper()}]\n{msg['content']}\n"
 
             st.download_button(
-                label="Download Summary Report",
-                data=export_data,
+                "Download summary TXT",
+                data=export_text,
                 file_name="mediassist_summary.txt",
                 mime="text/plain",
-                use_container_width=True
+                use_container_width=True,
+            )
+        else:
+            st.markdown(
+                """
+                <div style="
+                    background:#FFFFFF;
+                    border:1px dashed #CBD5E1;
+                    border-radius:16px;
+                    padding:22px;
+                    color:#64748B;
+                    text-align:center;">
+                    Upload a medical report to generate structured clinical insights here.
+                </div>
+                """,
+                unsafe_allow_html=True,
             )
 
-            st.markdown('</div>', unsafe_allow_html=True)
-        else:
-            st.markdown("""
-            <div class="insights-panel" style="color: #64748B; text-align: center;">
-                <p>Upload a medical document to generate structured clinical insights.</p>
-            </div>
-            """, unsafe_allow_html=True)
+        st.markdown("</div>", unsafe_allow_html=True)
 
-    # ---------- Footer ----------
     st.markdown("---")
     st.caption("MediAssist AI Pro • Informational only • Not a substitute for professional medical advice.")
-
 
 if __name__ == "__main__":
     main()
