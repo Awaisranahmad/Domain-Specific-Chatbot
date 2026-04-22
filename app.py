@@ -16,18 +16,18 @@ st.set_page_config(
 )
 
 # =========================================================
-# CUSTOM CSS – MODERN & POLISHED
+# CUSTOM CSS – REFINED COLOR SCHEME & LAYOUT
 # =========================================================
 st.markdown(
     """
     <style>
         /* Global styles */
         .main {
-            background: #F1F5F9;
+            background: #F4F7FB;
         }
 
         h1, h2, h3, h4, h5, h6 {
-            color: #0F172A !important;
+            color: #1E293B !important;
             font-weight: 600;
         }
 
@@ -36,14 +36,14 @@ st.markdown(
             background: #FFFFFF;
             border-radius: 24px;
             padding: 24px;
-            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.02);
+            box-shadow: 0 8px 20px rgba(0, 20, 30, 0.06);
             margin-bottom: 24px;
-            border: 1px solid #E2E8F0;
-            transition: box-shadow 0.2s ease;
+            border: 1px solid #E9EEF2;
+            transition: all 0.2s ease;
         }
 
         .soft-card:hover {
-            box-shadow: 0 20px 30px -10px rgba(0, 0, 0, 0.08);
+            box-shadow: 0 12px 28px rgba(0, 40, 60, 0.08);
         }
 
         .sidebar-card {
@@ -52,14 +52,14 @@ st.markdown(
             padding: 20px;
             margin-bottom: 20px;
             border: 1px solid #E2E8F0;
-            box-shadow: 0 4px 6px -2px rgba(0, 0, 0, 0.03);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.02);
         }
 
         /* Disclaimer box */
         .disclaimer-box {
-            background: #FEF2F2;
-            border-left: 6px solid #DC2626;
-            color: #7F1D1D;
+            background: #FFF5F5;
+            border-left: 6px solid #E53E3E;
+            color: #742A2A;
             padding: 16px 18px;
             border-radius: 16px;
             font-size: 0.9rem;
@@ -69,29 +69,29 @@ st.markdown(
 
         /* Chat bubbles */
         .chat-user {
-            background: linear-gradient(145deg, #4F46E5, #7C3AED);
+            background: linear-gradient(145deg, #0EA5E9, #3B82F6);
             color: white;
-            padding: 16px 20px;
-            border-radius: 24px 24px 8px 24px;
-            margin: 12px 0 16px auto;
+            padding: 14px 18px;
+            border-radius: 20px 20px 6px 20px;
+            margin: 10px 0 14px auto;
             width: fit-content;
             max-width: 85%;
-            box-shadow: 0 12px 18px -6px rgba(79, 70, 229, 0.2);
-            font-size: 1rem;
+            box-shadow: 0 8px 16px -6px rgba(14, 165, 233, 0.25);
+            font-size: 0.98rem;
             line-height: 1.5;
         }
 
         .chat-ai {
             background: #FFFFFF;
             border: 1px solid #E2E8F0;
-            border-left: 6px solid #8B5CF6;
+            border-left: 5px solid #8B5CF6;
             color: #0F172A;
-            padding: 16px 20px;
-            border-radius: 24px 24px 24px 8px;
-            margin: 12px 0 16px 0;
+            padding: 14px 18px;
+            border-radius: 20px 20px 20px 6px;
+            margin: 10px 0 14px 0;
             max-width: 90%;
             box-shadow: 0 4px 10px -4px rgba(0, 0, 0, 0.02);
-            font-size: 1rem;
+            font-size: 0.98rem;
             line-height: 1.6;
         }
 
@@ -121,28 +121,28 @@ st.markdown(
 
         /* Buttons */
         .stButton > button {
-            background: #4F46E5;
+            background: #0EA5E9;
             color: white;
             border: none;
-            border-radius: 16px;
+            border-radius: 14px;
             padding: 0.6rem 1.2rem;
             font-weight: 600;
             font-size: 0.95rem;
             transition: all 0.2s;
-            box-shadow: 0 4px 6px -2px rgba(79, 70, 229, 0.2);
+            box-shadow: 0 4px 8px -2px rgba(14, 165, 233, 0.2);
             border: 1px solid rgba(255,255,255,0.1);
         }
 
         .stButton > button:hover {
-            background: #4338CA;
+            background: #0284C7;
             transform: translateY(-1px);
-            box-shadow: 0 8px 12px -4px rgba(79, 70, 229, 0.25);
+            box-shadow: 0 8px 14px -4px rgba(14, 165, 233, 0.3);
             color: white;
             border-color: rgba(255,255,255,0.2);
         }
 
         .stDownloadButton > button {
-            border-radius: 16px;
+            border-radius: 14px;
             font-weight: 600;
             background: #FFFFFF;
             color: #1E293B;
@@ -159,8 +159,8 @@ st.markdown(
         /* Report display box */
         .report-box {
             white-space: pre-wrap;
-            background: #F8FAFC;
-            border: 1px solid #E2E8F0;
+            background: #F9FCFE;
+            border: 1px solid #DDE7F0;
             border-radius: 20px;
             padding: 20px;
             min-height: 240px;
@@ -181,7 +181,7 @@ st.markdown(
         }
 
         .upload-container:hover {
-            border-color: #4F46E5;
+            border-color: #0EA5E9;
         }
 
         /* File uploader label */
@@ -209,26 +209,39 @@ st.markdown(
 
         /* Export section */
         .export-section {
-            background: #F1F5F9;
-            border-radius: 16px;
-            padding: 16px;
+            background: #F1F9FE;
+            border-radius: 18px;
+            padding: 18px;
             margin-top: 24px;
         }
 
-        /* Chat input area */
-        .chat-input-row {
-            background: #FFFFFF;
-            border-radius: 20px;
-            padding: 8px 8px 8px 16px;
-            border: 1px solid #E2E8F0;
-            box-shadow: 0 4px 8px -2px rgba(0,0,0,0.02);
+        /* Chat history container */
+        .chat-history {
+            max-height: 500px;
+            overflow-y: auto;
+            padding-right: 8px;
+            margin-bottom: 16px;
         }
 
-        /* Responsive */
-        @media (max-width: 768px) {
-            .chat-user, .chat-ai {
-                max-width: 95%;
-            }
+        /* Input row at bottom */
+        .chat-input-container {
+            background: #FFFFFF;
+            border-radius: 20px;
+            padding: 12px 12px 12px 16px;
+            border: 1px solid #DDE7F0;
+            box-shadow: 0 4px 8px -2px rgba(0,0,0,0.02);
+            margin-top: 8px;
+        }
+
+        /* Placeholder styling */
+        .empty-state {
+            background: #F8FAFC;
+            border: 1.5px dashed #94A3B8;
+            border-radius: 24px;
+            padding: 32px 24px;
+            color: #475569;
+            text-align: center;
+            margin: 20px 0;
         }
     </style>
     """,
@@ -236,7 +249,7 @@ st.markdown(
 )
 
 # =========================================================
-# PROMPTS (unchanged)
+# PROMPTS
 # =========================================================
 MEDICAL_DISCLAIMER = """
 MediAssist AI Pro is an informational tool only. It is not a licensed healthcare provider.
@@ -297,7 +310,7 @@ Rules:
 """
 
 # =========================================================
-# HELPERS (unchanged except maybe minor tweaks)
+# HELPERS
 # =========================================================
 def get_groq_client():
     api_key = st.secrets.get("GROQ_API_KEY", "") or os.getenv("GROQ_API_KEY", "")
@@ -444,7 +457,7 @@ def main():
         st.markdown("</div>", unsafe_allow_html=True)
 
         st.markdown("---")
-        st.caption("v2.0 · Made with ❤️ for better care")
+        st.caption("v2.1 · Made with ❤️ for better care")
 
     if not safety_ok:
         st.info("👈 Please accept the disclaimer in the sidebar to continue.")
@@ -460,9 +473,9 @@ def main():
     # ---------- MAIN LAYOUT ----------
     left, right = st.columns([1.5, 1.0], gap="large")
 
-    # LEFT COLUMN: Chat & Upload
+    # ========== LEFT COLUMN ==========
     with left:
-        # Upload Card
+        # ----- Upload Card (always at top) -----
         st.markdown('<div class="soft-card">', unsafe_allow_html=True)
         st.markdown('<div class="section-title"><span>📋 Upload Medical Report</span></div>', unsafe_allow_html=True)
 
@@ -483,7 +496,6 @@ def main():
                     st.warning("Please upload an image first.")
 
         if uploaded_file is not None:
-            # Only process if file changed or forced
             if (uploaded_file.name != st.session_state.uploaded_name) or (st.session_state.last_action == "force_analyze"):
                 st.session_state.uploaded_name = uploaded_file.name
                 raw_bytes = uploaded_file.getvalue()
@@ -501,7 +513,6 @@ def main():
 
                 st.rerun()
 
-        # Show a thumbnail if report exists
         if st.session_state.uploaded_preview:
             st.markdown('<div class="image-preview-card">', unsafe_allow_html=True)
             st.image(st.session_state.uploaded_preview, caption="📸 Uploaded report preview", use_container_width=True)
@@ -512,26 +523,38 @@ def main():
 
         st.markdown("</div>", unsafe_allow_html=True)  # end upload card
 
-        # Chat Card
+        # ----- Chat Card with History Above, Input Below -----
         st.markdown('<div class="soft-card">', unsafe_allow_html=True)
         st.markdown('<div class="section-title"><span>💬 Conversation</span></div>', unsafe_allow_html=True)
 
-        # Chat input row with better styling
-        with st.container():
-            col1, col2, col3 = st.columns([6, 1.2, 1.5])
-            with col1:
-                user_text = st.text_input(
-                    "Type your question here...",
-                    placeholder="Ask about the report, symptoms, tests, or health terms...",
-                    label_visibility="collapsed",
-                    key="chat_input",
-                )
-            with col2:
-                send_clicked = st.button("Send ➤", use_container_width=True, key="send_btn")
-            with col3:
-                med_clicked = st.button("💊 Medicine guidance", use_container_width=True, key="med_btn")
+        # --- Chat History (scrollable) ---
+        st.markdown('<div class="chat-history">', unsafe_allow_html=True)
+        if not st.session_state.messages:
+            st.info("No conversation yet. Ask a question or upload a report to start.")
+        else:
+            for msg in st.session_state.messages:
+                render_message(msg["role"], msg["content"])
+        st.markdown('</div>', unsafe_allow_html=True)  # end chat-history
 
-        # Process send
+        # --- Chat Input Row at Bottom ---
+        st.markdown('<div class="chat-input-container">', unsafe_allow_html=True)
+        col1, col2, col3 = st.columns([5.5, 1.2, 1.5])
+        with col1:
+            user_text = st.text_input(
+                "Type your question here...",
+                placeholder="Ask about the report, symptoms, tests, or health terms...",
+                label_visibility="collapsed",
+                key="chat_input",
+            )
+        with col2:
+            send_clicked = st.button("Send ➤", use_container_width=True, key="send_btn")
+        with col3:
+            med_clicked = st.button("💊 Medicine", use_container_width=True, key="med_btn")
+        st.markdown('</div>', unsafe_allow_html=True)  # end chat-input-container
+
+        st.markdown("</div>", unsafe_allow_html=True)  # end chat card
+
+        # Process send (after UI to avoid duplicate rendering issues)
         if (send_clicked or st.session_state.last_action == "send_pending") and user_text.strip():
             st.session_state.last_action = "send_pending"
 
@@ -556,7 +579,6 @@ def main():
                                 "content": f"Relevant medical report summary:\n{st.session_state.report_summary}"
                             }
                         )
-                    # Include last 10 messages for context
                     messages.extend(st.session_state.messages[-10:])
                     messages.append({"role": "user", "content": user_text})
 
@@ -570,7 +592,6 @@ def main():
             st.session_state.last_action = ""
             st.rerun()
 
-        # Process medicine guidance
         if med_clicked:
             source_text = user_text.strip() or st.session_state.report_summary.strip()
             if not source_text:
@@ -595,19 +616,7 @@ def main():
                         )
                 st.rerun()
 
-        # Chat history display
-        st.markdown("---")
-        st.markdown('<div style="margin-top: 10px;">', unsafe_allow_html=True)
-        if not st.session_state.messages:
-            st.info("No conversation yet. Ask a question or upload a report to start.")
-        else:
-            for msg in st.session_state.messages:
-                render_message(msg["role"], msg["content"])
-        st.markdown('</div>', unsafe_allow_html=True)
-
-        st.markdown("</div>", unsafe_allow_html=True)  # end chat card
-
-    # RIGHT COLUMN: Clinical Insights
+    # ========== RIGHT COLUMN ==========
     with right:
         st.markdown('<div class="soft-card">', unsafe_allow_html=True)
         st.markdown('<div class="section-title"><span>🔬 Clinical Insights</span></div>', unsafe_allow_html=True)
@@ -645,15 +654,7 @@ def main():
         else:
             st.markdown(
                 """
-                <div style="
-                    background: #F8FAFC;
-                    border: 1.5px dashed #94A3B8;
-                    border-radius: 24px;
-                    padding: 32px 24px;
-                    color: #475569;
-                    text-align: center;
-                    margin: 20px 0;
-                ">
+                <div class="empty-state">
                     <span style="font-size: 2.5rem; display: block; margin-bottom: 10px;">📋</span>
                     <h4 style="color: #334155; margin-bottom: 8px;">No report analyzed yet</h4>
                     <p style="font-size: 0.95rem;">Upload a medical report in the left panel to generate structured clinical insights here.</p>
