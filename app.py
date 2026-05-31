@@ -449,16 +449,17 @@ st.markdown("""
 MEDICAL_DISCLAIMER = (
     "MediAssist AI Pro is an informational tool ONLY. It is NOT a licensed healthcare provider. "
     "It cannot diagnose illnesses, prescribe medication, or replace professional medical advice. "
-    "For urgent or severe symptoms, seek IMMEDIATE medical care."
+    "For urgent or severe symptoms, seek IMMEDIATE medical care. SO, please check and after the report of it."
 )
 
-SYSTEM_PROMPT = """You are MediAssist AI Pro — a professional, calm, and knowledgeable medical information assistant.
+SYSTEM_PROMPT = """You are MediAssist AI Pro  a professional, calm, and knowledgeable medical information assistant.
 
 Your scope:
 - Explain medical terminology in simple language
 - Summarize and interpret medical reports
 - Answer general health & wellness questions
 - Provide safe, conservative, informational guidance
+_ Act as polit doctor response
 
 Hard rules:
 1. NEVER diagnose a condition.
