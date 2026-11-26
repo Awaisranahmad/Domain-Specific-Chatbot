@@ -1,0 +1,9 @@
+# Secrets — never commit the real Groq API key
+.streamlit/secrets.toml
+.env
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/

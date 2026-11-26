@@ -1,6 +1,7 @@
 import streamlit as st
 import os
 import base64
+import html
 import io
 import json
 import datetime
@@ -528,6 +529,22 @@ End with the standard disclaimer.
 # =========================================================
 # HELPERS
 # =========================================================
+# =========================================================
+# MODEL CONFIG
+# =========================================================
+# Groq retired llama-3.3-70b-versatile for free/developer tiers on
+# 2026-08-16 (console.groq.com/docs/changelog); its recommended
+# replacement is openai/gpt-oss-120b. The fallback below keeps chat
+# working if the primary model is ever retired or renamed again.
+TEXT_MODEL_DEFAULT = "openai/gpt-oss-120b"
+TEXT_MODEL_FALLBACK = "openai/gpt-oss-20b"
+# Llama 4 Scout (the old README value) was shut down 2026-07-17;
+# Maverick is the live vision model on Groq.
+VISION_MODEL_DEFAULT = "meta-llama/llama-4-maverick-17b-128e-instruct"
+
+# Uploaded report images larger than this are rejected before processing.
+MAX_UPLOAD_BYTES = 10 * 1024 * 1024  # 10 MB
+
 def get_groq_client():
     api_key = st.secrets.get("GROQ_API_KEY", "") or os.getenv("GROQ_API_KEY", "")
     if not api_key:
@@ -536,12 +553,33 @@ def get_groq_client():
     return Groq(api_key=api_key)
 
 def get_models():
-    text_model   = st.secrets.get("GROQ_TEXT_MODEL",   os.getenv("GROQ_TEXT_MODEL",   "llama-3.3-70b-versatile"))
-    vision_model = st.secrets.get("GROQ_VISION_MODEL", os.getenv("GROQ_VISION_MODEL", "meta-llama/llama-4-maverick-17b-128e-instruct"))
+    text_model   = st.secrets.get("GROQ_TEXT_MODEL",   os.getenv("GROQ_TEXT_MODEL",   TEXT_MODEL_DEFAULT))
+    vision_model = st.secrets.get("GROQ_VISION_MODEL", os.getenv("GROQ_VISION_MODEL", VISION_MODEL_DEFAULT))
     return text_model, vision_model
 
+def safe_html(text) -> str:
+    """Escape text for display inside st.markdown(..., unsafe_allow_html=True).
+
+    Chat messages, AI replies, patient-profile fields and uploaded file names
+    are user-controlled; rendering them raw would let embedded HTML/JS run in
+    the viewer's browser (stored XSS). Newlines become <br> so multi-line
+    messages keep their line breaks.
+    """
+    return html.escape(str(text)).replace("\n", "<br>")
+
 def resize_image_bytes(file_bytes: bytes, max_size=(1200, 1200)) -> bytes:
-    img = Image.open(io.BytesIO(file_bytes))
+    if len(file_bytes) > MAX_UPLOAD_BYTES:
+        raise ValueError(
+            f"Image is too large ({len(file_bytes) / 1024 / 1024:.1f} MB). "
+            "Maximum upload size is 10 MB."
+        )
+    try:
+        img = Image.open(io.BytesIO(file_bytes))
+        img.load()  # force decode so corrupt files fail here, not later
+    except Exception:
+        raise ValueError(
+            "That file is not a valid image. Please upload a JPG or PNG photo of the report."
+        )
     if img.mode != "RGB":
         img = img.convert("RGB")
     img.thumbnail(max_size, Image.Resampling.LANCZOS)
@@ -572,13 +610,33 @@ def ts_now() -> str:
 def date_now() -> str:
     return datetime.datetime.now().strftime("%b %d, %Y %I:%M %p")
 
+def _is_model_not_found(error) -> bool:
+    """True when Groq reports the requested model no longer exists (HTTP 404)."""
+    if getattr(error, "status_code", None) == 404:
+        return True
+    msg = str(error).lower()
+    return "model_not_found" in msg or ("model" in msg and "does not exist" in msg)
+
 def groq_text(client, model, messages, max_tokens=1000, temp=0.35):
-    resp = client.chat.completions.create(
-        model=model,
-        messages=messages,
-        temperature=temp,
-        max_tokens=max_tokens,
-    )
+    try:
+        resp = client.chat.completions.create(
+            model=model,
+            messages=messages,
+            temperature=temp,
+            max_tokens=max_tokens,
+        )
+    except Exception as e:
+        if model != TEXT_MODEL_FALLBACK and _is_model_not_found(e):
+            # Model retired/renamed (e.g. llama-3.3-70b-versatile in Aug 2026):
+            # retry once with the smaller fallback instead of failing the chat.
+            resp = client.chat.completions.create(
+                model=TEXT_MODEL_FALLBACK,
+                messages=messages,
+                temperature=temp,
+                max_tokens=max_tokens,
+            )
+        else:
+            raise
     return resp.choices[0].message.content.strip()
 
 def analyze_image(client, vision_model, image_bytes: bytes) -> str:
@@ -638,6 +696,7 @@ def init_state():
             st.session_state[k] = v
 
 def render_bubble(role, content, timestamp=""):
+    content = safe_html(content)
     if role == "user":
         st.markdown(f'<div class="bubble-user">{content}</div>', unsafe_allow_html=True)
         if timestamp:
@@ -653,7 +712,7 @@ def classify_vital(name, value):
     """Returns normal/warn/danger class."""
     try:
         v = float(value)
-    except:
+    except (TypeError, ValueError):
         return "normal"
     rules = {
         "heart_rate":    [(60, 100, "normal"), (50, 110, "warn")],
@@ -702,9 +761,9 @@ def main():
         if p_name or p_age or (p_sex != "—"):
             st.markdown(f"""
             <div class="med-card-sm" style="margin-top:8px;">
-                <span class="tag-pill">{p_name or 'Patient'}</span>
-                {"<span class='tag-pill green'>Age "+p_age+"</span>" if p_age else ""}
-                {"<span class='tag-pill'>"+p_sex+"</span>" if p_sex != "—" else ""}
+                <span class="tag-pill">{html.escape(p_name) or 'Patient'}</span>
+                {"<span class='tag-pill green'>Age "+html.escape(p_age)+"</span>" if p_age else ""}
+                {"<span class='tag-pill'>"+html.escape(p_sex)+"</span>" if p_sex != "—" else ""}
             </div>
             """, unsafe_allow_html=True)
 
@@ -761,11 +820,11 @@ def main():
     # ──────────── HEADER ────────────
     patient_label = ""
     if p_name:
-        patient_label = f" · {p_name}"
+        patient_label = f" · {html.escape(p_name)}"
         if p_age:
-            patient_label += f", {p_age}"
+            patient_label += f", {html.escape(p_age)}"
         if p_sex != "—":
-            patient_label += f", {p_sex}"
+            patient_label += f", {html.escape(p_sex)}"
 
     st.markdown(f"""
     <div class="app-header">
@@ -841,7 +900,7 @@ def main():
             if st.session_state.report_summary:
                 st.markdown('<span class="tag-pill green">✓ Report Loaded</span>', unsafe_allow_html=True)
                 with st.expander("View Report Summary", expanded=False):
-                    st.markdown(f'<div class="report-box">{st.session_state.report_summary[:800]}{"…" if len(st.session_state.report_summary) > 800 else ""}</div>', unsafe_allow_html=True)
+                    st.markdown(f'<div class="report-box">{html.escape(st.session_state.report_summary[:800])}{"…" if len(st.session_state.report_summary) > 800 else ""}</div>', unsafe_allow_html=True)
             else:
                 st.markdown('<span class="tag-pill warn">No Report</span>', unsafe_allow_html=True)
                 st.caption("Upload a report in the Report Analysis tab to give context to the AI.")
@@ -852,7 +911,7 @@ def main():
             if p_cond:
                 st.markdown("**Known Conditions**")
                 for c in [x.strip() for x in p_cond.replace(",", "\n").split("\n") if x.strip()]:
-                    st.markdown(f'<span class="tag-pill red">⚠ {c}</span>', unsafe_allow_html=True)
+                    st.markdown(f'<span class="tag-pill red">⚠ {html.escape(c)}</span>', unsafe_allow_html=True)
                 st.markdown("<br>", unsafe_allow_html=True)
 
             # Vitals snapshot
@@ -870,7 +929,7 @@ def main():
                     st.markdown(f"""
                     <div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--border);">
                         <span style="font-size:0.83rem;color:var(--text-muted);">{vital_labels.get(k, k)}</span>
-                        <span style="font-size:0.9rem;font-weight:600;color:{colors[cls]};">{v}</span>
+                        <span style="font-size:0.9rem;font-weight:600;color:{colors[cls]};">{html.escape(v)}</span>
                     </div>
                     """, unsafe_allow_html=True)
 
@@ -1002,11 +1061,11 @@ def main():
                 if (uploaded_file.name != st.session_state.uploaded_name) or analyze_btn:
                     st.session_state.uploaded_name = uploaded_file.name
                     raw_bytes = uploaded_file.getvalue()
-                    resized   = resize_image_bytes(raw_bytes)
-                    st.session_state.uploaded_preview = resized
 
                     with st.spinner("🔍 AI analyzing your report…"):
                         try:
+                            resized = resize_image_bytes(raw_bytes)
+                            st.session_state.uploaded_preview = resized
                             report_text = analyze_image(client, vision_model, resized)
                             st.session_state.report_summary = report_text
                             st.success("✅ Report analyzed successfully!")
@@ -1034,7 +1093,7 @@ def main():
             st.markdown('<div class="sec-title">🔬 Extracted Clinical Data</div>', unsafe_allow_html=True)
 
             if st.session_state.report_summary:
-                st.markdown(f'<div class="report-box">{st.session_state.report_summary}</div>', unsafe_allow_html=True)
+                st.markdown(f'<div class="report-box">{html.escape(st.session_state.report_summary)}</div>', unsafe_allow_html=True)
 
                 st.markdown("---")
 
@@ -1174,7 +1233,7 @@ def main():
         if st.session_state.symptom_result:
             st.markdown("---")
             st.markdown("**Assessment Result:**")
-            st.markdown(f'<div class="bubble-ai">{st.session_state.symptom_result}</div>', unsafe_allow_html=True)
+            st.markdown(f'<div class="bubble-ai">{safe_html(st.session_state.symptom_result)}</div>', unsafe_allow_html=True)
 
         st.markdown("</div>", unsafe_allow_html=True)
 
@@ -1239,6 +1298,8 @@ def main():
                 try:
                     w = float(st.session_state.vitals["weight"])
                     h = float(st.session_state.vitals["height"]) / 100
+                    if w <= 0 or h <= 0:
+                        raise ValueError("Weight and height must be positive numbers.")
                     bmi = w / (h * h)
                     if bmi < 18.5: bmi_cat, bmi_cls = "Underweight", "warn"
                     elif bmi < 25: bmi_cat, bmi_cls = "Normal Weight", "normal"
@@ -1259,7 +1320,7 @@ def main():
                             </div>
                         </div>
                         """, unsafe_allow_html=True)
-                except:
+                except (TypeError, ValueError, ZeroDivisionError):
                     pass
 
             # Ask AI about vitals
@@ -1321,11 +1382,11 @@ def main():
             for i, session in enumerate(st.session_state.session_history):
                 with st.expander(f"📅 Session {i+1} — {session['date']} | {len(session['messages'])} messages", expanded=(i == 0)):
                     if session.get("uploaded_name"):
-                        st.markdown(f'<span class="tag-pill green">📋 {session["uploaded_name"]}</span>', unsafe_allow_html=True)
+                        st.markdown(f'<span class="tag-pill green">📋 {html.escape(session["uploaded_name"])}</span>', unsafe_allow_html=True)
 
                     if session.get("report_summary"):
                         st.markdown("**Report Summary:**")
-                        st.markdown(f'<div class="report-box">{session["report_summary"][:400]}…</div>', unsafe_allow_html=True)
+                        st.markdown(f'<div class="report-box">{html.escape(session["report_summary"][:400])}…</div>', unsafe_allow_html=True)
 
                     st.markdown("**Conversation:**")
                     for msg in session["messages"][-6:]:
@@ -1363,7 +1424,7 @@ def main():
     st.markdown("""
     <div style="text-align:center;padding:8px 0 4px;color:var(--text-muted);font-size:0.8rem;">
         🩺 <strong style="color:var(--accent);">MediAssist AI Pro v3.0</strong> · 
-        Powered by Groq + LLaMA · 
+        Powered by Groq (GPT-OSS + Llama 4 Maverick) · 
         For informational purposes only · 
         Not a substitute for professional medical advice
     </div>

@@ -15,14 +15,14 @@ MediAssist AI is a powerful, intelligent chatbot that provides professional, emp
 - 💬 **Chat history** – Full conversation history is saved during the session.
 - 🗑️ **New Chat** – Clear the conversation with one click.
 - 🌐 **Streamlit Cloud ready** – Works seamlessly on Streamlit Community Cloud.
-- 🎨 **Modern UI** – Clean light theme, chat bubbles, responsive layout.
+- 🎨 **Modern UI** – Clean dark theme, chat bubbles, responsive layout.
 
 ---
 
 ## 🧠 How It Works
 
-- **Text queries** are processed by Groq’s `llama-3.3-70b-versatile` model.
-- **Medical report images** are resized automatically (to avoid size limits) and sent to Groq’s vision model `meta-llama/llama-4-scout-17b-16e-instruct` for analysis.
+- **Text queries** are processed by Groq’s `openai/gpt-oss-120b` model (with automatic fallback to `openai/gpt-oss-20b` if the primary model is ever retired or renamed).
+- **Medical report images** are resized automatically (to avoid size limits) and sent to Groq’s vision model `meta-llama/llama-4-maverick-17b-128e-instruct` for analysis.
 - **Visualizations** are created using `matplotlib` (stick figures, body maps, pie charts, bar graphs) **only when the user explicitly asks** (keywords like “show me a diagram”, “visualize”, “draw”, “graph”).
 - All data stays within the session – no external storage.
 
@@ -47,7 +47,7 @@ groq
 Install them with:
 
 ```bash
-pip install streamlit langchain-groq langchain-core matplotlib pillow groq
+pip install -r requirements.txt
 ```
 
 ---
@@ -57,19 +57,25 @@ pip install streamlit langchain-groq langchain-core matplotlib pillow groq
 1. **Clone the repository**
 
 ```bash
-git clone https://github.com/yourusername/medicassist-ai.git
-cd medicassist-ai
+git clone https://github.com/Awaisranahmad/Domain-Specific-Chatbot.git
+cd Domain-Specific-Chatbot
 ```
 
 2. **Set up your Groq API key**
 
-   - Create a file named `.streamlit/secrets.toml` in the project root and add:
+   - Copy the example secrets file and fill in your own key:
+
+     ```bash
+     cp .streamlit/secrets.toml.example .streamlit/secrets.toml
+     ```
 
      ```toml
      GROQ_API_KEY = "your-groq-api-key-here"
      ```
 
-   - Alternatively, you can set an environment variable `GROQ_API_KEY`.
+   - `.streamlit/secrets.toml` is git-ignored, so your key never gets committed.
+   - Alternatively, set the environment variable `GROQ_API_KEY`.
+   - Optional overrides: `GROQ_TEXT_MODEL` and `GROQ_VISION_MODEL` (in secrets or environment) to change the models without editing code.
 
 3. **Run the app**
 
@@ -113,10 +119,31 @@ streamlit run app.py
 ## 🛠️ Tech Stack
 
 - **Frontend & Framework** – Streamlit
-- **LLM** – Groq (Llama 3.3 70B for text, Llama 4 Scout 17B for vision)
+- **LLM** – Groq (`openai/gpt-oss-120b` for text, Llama 4 Maverick 17B for vision)
 - **Visualisation** – Matplotlib
 - **Image Processing** – Pillow (PIL)
 - **Language** – Python 3.10+
+
+---
+
+## 🧪 Tests
+
+Unit tests cover the model defaults, the model-fallback logic, HTML escaping, urgent-symptom detection, vital classification, and image upload validation. They use stubbed `streamlit`/`groq` modules, so no API key or network is needed:
+
+```bash
+python3 -m unittest discover -s tests -v
+```
+
+16 tests, all passing.
+
+---
+
+## 🔒 Security
+
+- **No HTML injection:** every user-typed value (chat messages, patient profile, known conditions, vitals, uploaded file names) and every AI-generated reply is HTML-escaped before it is rendered with `unsafe_allow_html=True`.
+- **API key protection:** `.streamlit/secrets.toml` is git-ignored; only `.streamlit/secrets.toml.example` (placeholder key) is committed.
+- **Upload validation:** report images over 10 MB are rejected, and corrupt/non-image uploads show a friendly error instead of crashing the app.
+- **No secrets, no `eval()`, no SQL** in this codebase.
 
 ---
 
@@ -144,12 +171,19 @@ This project is open‑source and available under the [MIT License](LICENSE).
 
 ## 🤝 Contributing
 
-Contributions, issues, and feature requests are welcome!  
-Feel free to check the [issues page](https://github.com/yourusername/medicassist-ai/issues).
+Contributions, issues, and feature requests are welcome!
+Feel free to check the [issues page](https://github.com/Awaisranahmad/Domain-Specific-Chatbot/issues).
+
+---
+
+## 📋 Changelog
+
+- **2026-11-26 — Security & reliability hardening:**
+  - Fixed retired Groq models: text default `llama-3.3-70b-versatile` (shut down 2026-08-16) → `openai/gpt-oss-120b`, with automatic fallback to `openai/gpt-oss-20b` on a model-not-found error; vision default confirmed as the live `meta-llama/llama-4-maverick-17b-128e-instruct` (Scout was shut down 2026-07-17).
+  - Fixed stored-XSS risk: all user/AI-controlled text rendered with `unsafe_allow_html=True` is now HTML-escaped (`safe_html` helper).
+  - Report image uploads are now validated (max 10 MB, corrupt files rejected with a friendly error instead of crashing the app).
+  - Added `.gitignore` (protects `.streamlit/secrets.toml` + `.env`), `.streamlit/secrets.toml.example`, MIT `LICENSE`, and a 16-test `tests/` suite (`python3 -m unittest discover -s tests -v`).
 
 ---
 
 **Made with ❤️ for better health awareness**
-```
-
-You can adjust the GitHub repository link and any other details to match your actual project. This README is clear, feature‑complete, and inviting for users.
